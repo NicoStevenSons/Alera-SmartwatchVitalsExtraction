@@ -9,6 +9,15 @@ class HeartRateData {
     required this.measuredAt,
   });
 
+    Map<String, dynamic> toJson() {
+      return {
+        'event_type': 'heart_rate',
+        'heart_rate_bpm': bpm,
+        'status': status,
+        'measured_at': measuredAt,
+      };
+    }
+    
   factory HeartRateData.fromJson(
     Map<String, dynamic> json,
   ) {

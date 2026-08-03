@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'Services/watch_payload_service.dart';
+import 'Services/health_event_api_service.dart';
+import 'Services/health_event_mapper.dart';
+
+import 'config/app_config.dart';
+
+import 'dart:convert';
+
 import 'models/heart_rate_data.dart';
 import 'models/spo2_data.dart';
 import 'models/steps_data.dart';
@@ -22,6 +29,12 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final WatchPayloadService watchPayloadService = WatchPayloadService();
 
+  final HealthEventApiService healthEventApiService =
+    HealthEventApiService(
+  baseUrl: AppConfig.backendBaseUrl,
+  patientId: AppConfig.testPatientId,
+);
+
   HeartRateData heartRateData = const HeartRateData(bpm: null, status: null, measuredAt: null,);
   SpO2Data spo2Data = SpO2Data.empty();
   StepsData stepsData = StepsData.empty();
@@ -33,24 +46,84 @@ class _MyAppState extends State<MyApp> {
 
     watchPayloadService.startListening(
       onHeartRateReceived: (HeartRateData data) {
-        if (!mounted) {
-          return;
-        }
+  if (!mounted) {
+    return;
+  }
 
-        setState(() {
-          heartRateData = data;
-        });
-      },
+  setState(() {
+    heartRateData = data;
+  });
+
+  final int? bpm = data.bpm;
+  final String? measuredAt = data.measuredAt;
+
+  if (bpm == null || measuredAt == null) {
+    debugPrint(
+      'Heart-rate reading not sent: '
+      'missing BPM or timestamp.',
+    );
+    return;
+  }
+
+  final Map<String, dynamic> backendPayload =
+      HealthEventMapper.mapHeartRate(
+    patientId: healthEventApiService.patientId,
+    heartRateBpm: bpm,
+    recordedAt: measuredAt,
+    rawPayload: data.toJson(),
+  );
+
+  if (AppConfig.enableBackend) {
+  healthEventApiService.sendHealthEvent(
+    backendPayload,
+  );
+} else {
+  debugPrint(
+    'Mapped HR backend payload: '
+    '${jsonEncode(backendPayload)}',
+  );
+}
+},
       
     onSpO2Received: (SpO2Data data) {
-      if (!mounted) {
-          return;
-      }
-      setState(() {
-        spo2Data = data;
-      });
-    },
+  if (!mounted) {
+    return;
+  }
 
+  setState(() {
+    spo2Data = data;
+  });
+
+  final double? percent = data.percent;
+  final String? measuredAt = data.measuredAt;
+
+  if (percent == null || measuredAt == null) {
+    debugPrint(
+      'SpO₂ reading not sent: '
+      'missing percentage or timestamp.',
+    );
+    return;
+  }
+
+  final Map<String, dynamic> backendPayload =
+      HealthEventMapper.mapSpO2(
+    patientId: healthEventApiService.patientId,
+    spo2Percent: percent,
+    recordedAt: measuredAt,
+    rawPayload: data.toJson(),
+  );
+
+  if (AppConfig.enableBackend) {
+  healthEventApiService.sendHealthEvent(
+    backendPayload,
+  );
+} else {
+  debugPrint(
+    'Mapped SpO₂ backend payload: '
+    '${jsonEncode(backendPayload)}',
+  );
+}
+},
 
     onStepsReceived: (StepsData data) {
   if (!mounted) {

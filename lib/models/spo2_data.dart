@@ -17,14 +17,29 @@ class SpO2Data {
     );
   }
 
-  factory SpO2Data.fromJson(Map<String, dynamic> json) {
-    final num? percentValue = json['spo2_percent'] as num?;
-    final num? statusValue = json['status'] as num?;
+  Map<String, dynamic> toJson() {
+    return {
+      'event_type': 'spo2',
+      'spo2_percent': percent,
+      'status': status,
+      'measured_at': measuredAt,
+    };
+  }
+
+  factory SpO2Data.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final num? percentValue =
+        json['spo2_percent'] as num?;
+
+    final num? statusValue =
+        json['status'] as num?;
 
     return SpO2Data(
       percent: percentValue?.toDouble(),
       status: statusValue?.toInt(),
-      measuredAt: json['measured_at'] as String?,
+      measuredAt:
+          json['measured_at'] as String?,
     );
   }
 
