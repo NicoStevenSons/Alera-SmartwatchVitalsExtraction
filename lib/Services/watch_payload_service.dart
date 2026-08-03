@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../models/heart_rate_data.dart';
 import '../models/spo2_data.dart';
 import '../models/steps_data.dart';
+import '../models/device_status_data.dart';
 
 class WatchPayloadService {
   static const EventChannel _payloadChannel = EventChannel(
@@ -20,6 +21,7 @@ class WatchPayloadService {
     required void Function(HeartRateData data) onHeartRateReceived,
     required void Function(SpO2Data data) onSpO2Received,
     required void Function(StepsData data) onStepsReceived,
+    required void Function(DeviceStatusData data) onDeviceStatusReceived,
     void Function(Object error)? onError,
   }) {
     _subscription = _payloadChannel
@@ -60,6 +62,15 @@ class WatchPayloadService {
                 onStepsReceived(stepsData);
                 return;
                     }
+
+              if (eventType == 'device_status') {
+                final DeviceStatusData deviceStatusData =
+                  DeviceStatusData.fromJson(payload);
+
+                onDeviceStatusReceived(deviceStatusData);
+                return;
+}
+                    
               
 
               debugPrint(
