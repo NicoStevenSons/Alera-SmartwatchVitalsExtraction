@@ -25,8 +25,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private lateinit var stepsDataReader: StepsDataReader
 
-    private val healthPermissions =
-        setOf(
+    private val healthPermissions = setOf(
             HealthPermission.getReadPermission(
                 StepsRecord::class
             )
@@ -54,18 +53,18 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
-        super.onCreate(savedInstanceState)
+    savedInstanceState: Bundle?
+) {
+    super.onCreate(savedInstanceState)
 
-        healthConnectClient =
-            HealthConnectClient.getOrCreate(this)
-            
-            stepsDataReader =
-            StepsDataReader(this)
+    healthConnectClient =
+        HealthConnectClient.getOrCreate(this)
 
-        requestHealthPermissions()
-    }
+    stepsDataReader =
+        StepsDataReader(this)
+
+    requestHealthPermissions()
+}
 
     private fun requestHealthPermissions() {
         lifecycleScope.launch {
