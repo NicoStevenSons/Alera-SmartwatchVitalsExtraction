@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'models/heart_rate_data.dart';
 import 'Services/watch_payload_service.dart';
+import 'models/heart_rate_data.dart';
 import 'models/spo2_data.dart';
+import 'models/steps_data.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,16 +17,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final WatchPayloadService watchPayloadService =
-      WatchPayloadService();
+  final WatchPayloadService watchPayloadService = WatchPayloadService();
 
-  HeartRateData heartRateData = const HeartRateData(
-    bpm: null,
-    status: null,
-    measuredAt: null,
-  );
-
+  HeartRateData heartRateData = const HeartRateData(bpm: null, status: null, measuredAt: null,);
   SpO2Data spo2Data = SpO2Data.empty();
+  StepsData stepsData = StepsData.empty();
 
   @override
   void initState() {
@@ -38,9 +34,10 @@ class _MyAppState extends State<MyApp> {
         }
 
         setState(() {
-          heartRateData = heartRateData.mergeWithIncoming(data);
+          heartRateData = data;
         });
       },
+      
     onSpO2Received: (SpO2Data data) {
       if (!mounted) {
           return;
@@ -48,6 +45,25 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         spo2Data = data;
       });
+    },
+
+
+    onStepsReceived: (StepsData data) {
+  if (!mounted) {
+    return;
+  }
+
+  setState(() {
+    stepsData = data;
+      });
+    },
+
+    //spaceforSleepandConnection
+
+     onError: (Object error) {
+      debugPrint(
+        'Payload listener error: $error',
+      );
     },
 
     );
@@ -73,7 +89,7 @@ class _MyAppState extends State<MyApp> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-Row(
+Row(//HeartRatePayload
                 children: [
                   const Icon(Icons.favorite,
                               color: Colors.red,
@@ -84,7 +100,7 @@ Row(
               Text(heartRateData.displayedStatus),
               Text(heartRateData.measuredAt ?? 'No measurement received',),
 
-Row(
+Row(//spo2DataPayload
                 children: [
                   const Icon(Icons.bloodtype,
                               color: Colors.red,
@@ -96,7 +112,50 @@ Row(
               Text(spo2Data.displayedStatus),
               Text(spo2Data.measuredAt ?? 'No measurement received',),
 
-              
+Column(//Steps
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      'Total Steps: ${stepsData.displayedTotalSteps}',
+    ),
+
+    Text(
+      'Sessions: ${stepsData.sessions.length}',
+    ),
+
+    if (stepsData.sessions.isEmpty)
+      const Text(
+        'No step sessions received',
+      ),
+
+    ...stepsData.sessions.map(
+      (StepSessionData session) {
+        return Padding(
+          padding: const EdgeInsets.only(
+            top: 8,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.stairs,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${session.stepCount} steps\n'
+                  'Start: ${session.startTime}\n'
+                  'End: ${session.endTime}',
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              )        
             ],
           ),
         ),

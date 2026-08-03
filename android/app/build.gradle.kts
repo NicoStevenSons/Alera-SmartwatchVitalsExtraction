@@ -19,7 +19,7 @@ android {
         applicationId = "com.alera.payloadextraction"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -44,6 +44,10 @@ dependencies {
     implementation(
         "com.google.android.gms:play-services-wearable:20.0.1"
     )
+
+    implementation(
+        "androidx.health.connect:connect-client:1.1.0"
+        )
 
 }
 

@@ -4,8 +4,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+//dataPayloads
 import '../models/heart_rate_data.dart';
 import '../models/spo2_data.dart';
+import '../models/steps_data.dart';
 
 class WatchPayloadService {
   static const EventChannel _payloadChannel = EventChannel(
@@ -17,6 +19,7 @@ class WatchPayloadService {
   void startListening({
     required void Function(HeartRateData data) onHeartRateReceived,
     required void Function(SpO2Data data) onSpO2Received,
+    required void Function(StepsData data) onStepsReceived,
     void Function(Object error)? onError,
   }) {
     _subscription = _payloadChannel
@@ -49,6 +52,15 @@ class WatchPayloadService {
                 onSpO2Received(spo2Data);
                 return;
               }
+
+              if (eventType == 'steps') {
+                final StepsData stepsData =
+                StepsData.fromJson(payload);
+
+                onStepsReceived(stepsData);
+                return;
+                    }
+              
 
               debugPrint(
                 'Unknown smartwatch payload type: $eventType',
