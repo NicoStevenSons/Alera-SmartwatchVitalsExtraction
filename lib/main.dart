@@ -52,6 +52,11 @@ class _MyAppState extends State<MyApp> {
 
   setState(() {
     heartRateData = data;
+
+      deviceStatusData =
+      deviceStatusData.copyWith(
+      connectedToPhone: true,
+  );
   });
 
   final int? bpm = data.bpm;
@@ -92,6 +97,11 @@ class _MyAppState extends State<MyApp> {
 
   setState(() {
     spo2Data = data;
+
+      deviceStatusData =
+      deviceStatusData.copyWith(
+      connectedToPhone: true,
+  );
   });
 
   final double? percent = data.percent;

@@ -50,6 +50,31 @@ class DeviceStatusData {
     );
   }
 
+   DeviceStatusData copyWith({
+    int? batteryPercent,
+    String? deviceName,
+    String? deviceModel,
+    bool? connectedToPhone,
+    String? connectedPhoneName,
+    String? measuredAt,
+  }) {
+    return DeviceStatusData(
+      batteryPercent:
+          batteryPercent ?? this.batteryPercent,
+      deviceName:
+          deviceName ?? this.deviceName,
+      deviceModel:
+          deviceModel ?? this.deviceModel,
+      connectedToPhone:
+          connectedToPhone ?? this.connectedToPhone,
+      connectedPhoneName:
+          connectedPhoneName ??
+              this.connectedPhoneName,
+      measuredAt:
+          measuredAt ?? this.measuredAt,
+    );
+  }
+  
   String get displayedBattery {
     if (batteryPercent == null) {
       return '--';

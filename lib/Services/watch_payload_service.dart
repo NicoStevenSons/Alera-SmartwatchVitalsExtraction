@@ -64,6 +64,16 @@ class WatchPayloadService {
                     }
 
               if (eventType == 'device_status') {
+
+                debugPrint(
+                'Device status JSON: '
+                'battery=${payload['battery_percent']}, '
+                'device=${payload['device_name']}, '
+                'model=${payload['device_model']}, '
+                'connected=${payload['connected_to_phone']}, '
+                'phone=${payload['connected_phone_name']}',
+                );//removable
+                
                 final DeviceStatusData deviceStatusData =
                   DeviceStatusData.fromJson(payload);
 
