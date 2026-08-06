@@ -12,6 +12,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.launch
 import com.alera.payloadextraction.health.StepsDataReader
+import androidx.health.connect.client.records.SleepSessionRecord
 
 class MainActivity : FlutterFragmentActivity() {
 
@@ -26,10 +27,10 @@ class MainActivity : FlutterFragmentActivity() {
     private lateinit var stepsDataReader: StepsDataReader
 
     private val healthPermissions = setOf(
-            HealthPermission.getReadPermission(
-                StepsRecord::class
-            )
-        )
+        HealthPermission.getReadPermission(
+            StepsRecord::class),
+        HealthPermission.getReadPermission(SleepSessionRecord::class)
+    )
 
     private val healthPermissionLauncher =
     registerForActivityResult(
@@ -51,6 +52,44 @@ class MainActivity : FlutterFragmentActivity() {
             )
         }
     }
+
+
+private fun refreshSteps() {
+    Log.d(
+        "AleraHealthConnect",
+        "Refreshing Health Connect steps"
+    )
+
+    readAndSendTodaySteps()
+}//for testing
+
+
+    override fun onResume() {
+    super.onResume()
+
+        if  (
+            ::healthConnectClient.isInitialized &&
+            ::stepsDataReader.isInitialized
+        )   {
+            requestHealthPermissions()
+        }
+    }
+
+
+    override fun onListen(
+    arguments: Any?,
+    events: EventChannel.EventSink?
+) {
+    Log.d(
+        "AleraFlutterBridge",
+        "Flutter started listening"
+    )
+
+    PayloadEventBridge.attachSink(events)
+
+    refreshSteps()
+}
+
 
     override fun onCreate(
     savedInstanceState: Bundle?
@@ -98,6 +137,20 @@ class MainActivity : FlutterFragmentActivity() {
         try {
             val sessions =
                 stepsDataReader.readTodayStepSessions()
+
+                Log.d(
+                "AleraHealthConnect",
+                "Step sessions found: ${sessions.size}"
+                )
+
+                sessions.forEach { session ->
+                Log.d(
+                    "AleraHealthConnect",
+                    "Steps: ${session.stepCount}, " +
+                    "start=${session.startTime}, " +
+                    "end=${session.endTime}"
+                    )
+                        }
 
             val sessionsJson =
                 sessions.joinToString(
@@ -161,9 +214,8 @@ class MainActivity : FlutterFragmentActivity() {
                         "Flutter started listening"
                     )
 
-                    PayloadEventBridge.attachSink(
-                        events
-                    )
+                    PayloadEventBridge.attachSink(events)
+                    refreshSteps()
                 }
 
                 override fun onCancel(
