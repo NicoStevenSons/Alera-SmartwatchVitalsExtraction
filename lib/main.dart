@@ -12,6 +12,7 @@ import 'models/heart_rate_data.dart';
 import 'models/spo2_data.dart';
 import 'models/steps_data.dart';
 import 'models/device_status_data.dart';
+import 'models/sleep_data.dart';
 
 import 'widgets/device_status_dialog.dart';
 
@@ -39,7 +40,7 @@ class _MyAppState extends State<MyApp> {
   SpO2Data spo2Data = SpO2Data.empty();
   StepsData stepsData = StepsData.empty();
   DeviceStatusData deviceStatusData = DeviceStatusData.empty();
-
+  SleepData sleepData = SleepData.empty();
   @override
   void initState() {
     super.initState();
@@ -157,7 +158,21 @@ class _MyAppState extends State<MyApp> {
   });
 },
 
-    //spaceforSleepa
+    onSleepReceived: (SleepData data) {
+  if (!mounted) {
+    return;
+  }
+
+  setState(() {
+    sleepData = data;
+  });
+
+  debugPrint(
+    'Sleep sessions received: '
+    '${data.sessions.length}',
+  );
+},
+
 
      onError: (Object error) {
       debugPrint(

@@ -1,7 +1,5 @@
 package com.alera.payloadextraction.health
 
-package com.alera.payloadextraction.health
-
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -33,7 +31,8 @@ class SleepDataReader(
     suspend fun readRecentSleepSessions():
         List<SleepSessionData> {
 
-        val now = Instant.now()
+        val now =
+            Instant.now()
 
         val sevenDaysAgo =
             now.minus(
@@ -64,10 +63,8 @@ class SleepDataReader(
                 stages = record.stages.map { stage ->
                     SleepStageData(
                         stage = stage.stage,
-                        startTime =
-                            stage.startTime,
-                        endTime =
-                            stage.endTime
+                        startTime = stage.startTime,
+                        endTime = stage.endTime
                     )
                 }
             )

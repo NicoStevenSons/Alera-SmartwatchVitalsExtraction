@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../models/heart_rate_data.dart';
 import '../models/spo2_data.dart';
 import '../models/steps_data.dart';
+import '../models/sleep_data.dart';
 import '../models/device_status_data.dart';
 
 class WatchPayloadService {
@@ -22,6 +23,7 @@ class WatchPayloadService {
     required void Function(SpO2Data data) onSpO2Received,
     required void Function(StepsData data) onStepsReceived,
     required void Function(DeviceStatusData data) onDeviceStatusReceived,
+    required void Function(SleepData data) onSleepReceived,
     void Function(Object error)? onError,
   }) {
     _subscription = _payloadChannel
@@ -38,6 +40,17 @@ class WatchPayloadService {
 
               final String? eventType =
                   payload['event_type'] as String?;
+
+              if (eventType == 'sleep') {
+                final SleepData sleepData =
+                  SleepData.fromJson(payload);
+
+                onSleepReceived(
+                sleepData,
+                );
+
+                  return;
+                  }
 
               if (eventType == 'heart_rate') {
                 final HeartRateData heartRateData =
