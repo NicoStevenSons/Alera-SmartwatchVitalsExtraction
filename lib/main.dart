@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'Services/watch_payload_service.dart';
 import 'Services/health_event_api_service.dart';
 import 'Services/upload_queue_service.dart';
 import 'Services/fifo_upload_service.dart';
 import 'Services/watch_listener_controller.dart';
+import 'Services/background_sync_service.dart';
 
 import 'config/app_config.dart';
 
-//mport 'dart:convert';
+//import 'dart:convert';
 
 import 'models/heart_rate_data.dart';
 import 'models/spo2_data.dart';
@@ -23,7 +25,21 @@ import 'widgets/heart_rate_display.dart';
 import 'widgets/spo2_display.dart';
 import 'widgets/steps_display.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Workmanager().initialize( callbackDispatcher,);
+
+  await Workmanager().registerPeriodicTask(
+  'alera-periodic-health-upload',
+  aleraBackgroundSyncTask,
+  frequency: const Duration(
+    minutes: 15,
+    ),
+  constraints: Constraints(
+    networkType: NetworkType.connected,
+    ),
+  );
+
   runApp(const MyApp());
 }
 
@@ -34,7 +50,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final WatchPayloadService watchPayloadService = 
         WatchPayloadService();
 
@@ -53,9 +69,12 @@ late final WatchListenerController watchListenerController;
   StepsData stepsData = StepsData.empty();
   DeviceStatusData deviceStatusData = DeviceStatusData.empty();
   SleepData sleepData = SleepData.empty();
+
+  
   @override
   void initState() {
   super.initState();
+  WidgetsBinding.instance.addObserver(this);
 
   fifoUploadService = FifoUploadService(
     uploadQueueService: uploadQueueService,
@@ -131,11 +150,38 @@ late final WatchListenerController watchListenerController;
   );
 
   watchListenerController.start();
+
+  _processPendingQueue();
 }
 
+  Future<void> _processPendingQueue() async {
+  if (!AppConfig.enableBackend) {
+    return;
+  }
+
+  debugPrint(
+    'Checking pending upload queue...',
+  );
+
+  await fifoUploadService.processQueue();
+}
 
   @override
+  void didChangeAppLifecycleState(
+  AppLifecycleState state,
+) {
+  if (state == AppLifecycleState.resumed) {
+    debugPrint(
+      'App resumed. Processing pending queue.',
+    );
+
+    _processPendingQueue();
+  }
+}
+  
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     watchPayloadService.dispose();
     super.dispose();
   }

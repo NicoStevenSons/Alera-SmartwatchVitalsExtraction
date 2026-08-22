@@ -37,6 +37,7 @@ dependencies:
   http: ^1.6.0
   sqflite: ^2.4.3
   path: ^1.9.1
+  workmanager: ^0.10.9
 
 dev_dependencies:
   flutter_test:
