@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'Services/watch_payload_service.dart';
 import 'Services/health_event_api_service.dart';
-import 'Services/health_event_mapper.dart';
+import 'Services/upload_queue_service.dart';
+import 'Services/fifo_upload_service.dart';
+import 'Services/watch_listener_controller.dart';
 
 import 'config/app_config.dart';
 
-import 'dart:convert';
+//mport 'dart:convert';
 
 import 'models/heart_rate_data.dart';
 import 'models/spo2_data.dart';
@@ -15,6 +17,11 @@ import 'models/device_status_data.dart';
 import 'models/sleep_data.dart';
 
 import 'widgets/device_status_dialog.dart';
+import 'widgets/clear_pending_queue_button.dart';
+import 'widgets/sleep_display.dart';
+import 'widgets/heart_rate_display.dart';
+import 'widgets/spo2_display.dart';
+import 'widgets/steps_display.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,13 +35,18 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final WatchPayloadService watchPayloadService = WatchPayloadService();
+  final WatchPayloadService watchPayloadService = 
+        WatchPayloadService();
 
   final HealthEventApiService healthEventApiService =
     HealthEventApiService(
-  baseUrl: AppConfig.backendBaseUrl,
-  patientId: AppConfig.testPatientId,
-);
+    baseUrl: AppConfig.backendBaseUrl,
+    patientId: AppConfig.testPatientId,
+  );
+
+final UploadQueueService uploadQueueService = UploadQueueService();
+late final FifoUploadService fifoUploadService;
+late final WatchListenerController watchListenerController;
 
   HeartRateData heartRateData = const HeartRateData(bpm: null, status: null, measuredAt: null,);
   SpO2Data spo2Data = SpO2Data.empty();
@@ -43,145 +55,83 @@ class _MyAppState extends State<MyApp> {
   SleepData sleepData = SleepData.empty();
   @override
   void initState() {
-    super.initState();
+  super.initState();
 
-    watchPayloadService.startListening(
-      onHeartRateReceived: (HeartRateData data) {
-  if (!mounted) {
-    return;
-  }
-
-  setState(() {
-    heartRateData = data;
-
-      deviceStatusData =
-      deviceStatusData.copyWith(
-      connectedToPhone: true,
-  );
-  });
-
-  final int? bpm = data.bpm;
-  final String? measuredAt = data.measuredAt;
-
-  if (bpm == null || measuredAt == null) {
-    debugPrint(
-      'Heart-rate reading not sent: '
-      'missing BPM or timestamp.',
-    );
-    return;
-  }
-
-  final Map<String, dynamic> backendPayload =
-      HealthEventMapper.mapHeartRate(
-    patientId: healthEventApiService.patientId,
-    heartRateBpm: bpm,
-    recordedAt: measuredAt,
-    rawPayload: data.toJson(),
+  fifoUploadService = FifoUploadService(
+    uploadQueueService: uploadQueueService,
+    healthEventApiService:
+        healthEventApiService,
   );
 
-  if (AppConfig.enableBackend) {
-  healthEventApiService.sendHealthEvent(
-    backendPayload,
-  );
-} else {
-  debugPrint(
-    'Mapped HR backend payload: '
-    '${jsonEncode(backendPayload)}',
-  );
-}
-},
-      
-    onSpO2Received: (SpO2Data data) {
-  if (!mounted) {
-    return;
-  }
+  watchListenerController =
+      WatchListenerController(
+    watchPayloadService:
+        watchPayloadService,
+    uploadQueueService:
+        uploadQueueService,
+    healthEventApiService:
+        healthEventApiService,
+    fifoUploadService:
+        fifoUploadService,
 
-  setState(() {
-    spo2Data = data;
+    onHeartRateUpdated:
+        (HeartRateData data) {
+      if (!mounted) return;
 
-      deviceStatusData =
-      deviceStatusData.copyWith(
-      connectedToPhone: true,
-  );
-  });
+      setState(() {
+        heartRateData = data;
 
-  final double? percent = data.percent;
-  final String? measuredAt = data.measuredAt;
-
-  if (percent == null || measuredAt == null) {
-    debugPrint(
-      'SpO₂ reading not sent: '
-      'missing percentage or timestamp.',
-    );
-    return;
-  }
-
-  final Map<String, dynamic> backendPayload =
-      HealthEventMapper.mapSpO2(
-    patientId: healthEventApiService.patientId,
-    spo2Percent: percent,
-    recordedAt: measuredAt,
-    rawPayload: data.toJson(),
-  );
-
-  if (AppConfig.enableBackend) {
-  healthEventApiService.sendHealthEvent(
-    backendPayload,
-  );
-} else {
-  debugPrint(
-    'Mapped SpO₂ backend payload: '
-    '${jsonEncode(backendPayload)}',
-  );
-}
-},
-
-    onStepsReceived: (StepsData data) {
-  if (!mounted) {
-    return;
-  }
-
-  setState(() {
-    stepsData = data;
+        deviceStatusData =
+            deviceStatusData.copyWith(
+          connectedToPhone: true,
+        );
       });
     },
 
-    onDeviceStatusReceived: (
-  DeviceStatusData data,
-) {
-  if (!mounted) {
-    return;
-  }
+    onSpO2Updated:
+        (SpO2Data data) {
+      if (!mounted) return;
 
-  setState(() {
-    deviceStatusData = data;
-  });
-},
+      setState(() {
+        spo2Data = data;
 
-    onSleepReceived: (SleepData data) {
-  if (!mounted) {
-    return;
-  }
-
-  setState(() {
-    sleepData = data;
-  });
-
-  debugPrint(
-    'Sleep sessions received: '
-    '${data.sessions.length}',
-  );
-},
-
-
-     onError: (Object error) {
-      debugPrint(
-        'Payload listener error: $error',
-      );
+        deviceStatusData =
+            deviceStatusData.copyWith(
+          connectedToPhone: true,
+        );
+      });
     },
 
-    );
-  }
+    onStepsUpdated:
+        (StepsData data) {
+      if (!mounted) return;
+
+      setState(() {
+        stepsData = data;
+      });
+    },
+
+    onDeviceStatusUpdated:
+        (DeviceStatusData data) {
+      if (!mounted) return;
+
+      setState(() {
+        deviceStatusData = data;
+      });
+    },
+
+    onSleepUpdated:
+        (SleepData data) {
+      if (!mounted) return;
+
+      setState(() {
+        sleepData = data;
+      });
+    },
+  );
+
+  watchListenerController.start();
+}
 
 
   @override
@@ -213,88 +163,38 @@ class _MyAppState extends State<MyApp> {
                 )
               ],//Actions
             ),
-            body: Padding(
+            body: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: Column(
-          
-                children: [
-          Row(//HeartRatePayload
-                    children: [
-                      const Icon(Icons.favorite,
-                                  color: Colors.red,
-                                    ),
-                      Text('Heart Rate: ''${heartRateData.displayedHeartRate} BPM',),
-                    ],
-                  ),
-                  Text(heartRateData.displayedStatus),
-                  Text(heartRateData.measuredAt ?? 'No measurement received',),
-                  const SizedBox(height: 16),
-          
-          Row(//spo2DataPayload
-                    children: [
-                      const Icon(Icons.bloodtype,
-                                  color: Colors.red,
-                                    ),
-                      Text('SpO2: ''${spo2Data.displayedPercent}%',),
-                      
-                    ],
-                  ),
-                  Text(spo2Data.displayedStatus),
-                  Text(spo2Data.measuredAt ?? 'No measurement received',),
-                  const SizedBox(height: 16),
-          
-          Row(//Steps
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.stairs),
-              Text(
-          'Total Steps: ${stepsData.displayedTotalSteps}',
-              ),
-              Column(
-          children: [
-              Text(
-          'Sessions: ${stepsData.sessions.length}',
-              ),
-          
-              if (stepsData.sessions.isEmpty)
-          const Text(
-            'No step sessions received',
-          ),
-          
-              ...stepsData.sessions.map(
-          (StepSessionData session) {
-            return Padding(
-              padding: const EdgeInsets.only(
-                top: 28,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.stairs,
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${session.stepCount} steps\n'
-                      'Start: ${session.startTime}\n'
-                      'End: ${session.endTime}',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  )
-                ]
-              )
-                
-               
-                ],
-              ),
+              child: Column(children: [
+                 HeartRateDisplay(
+        heartRateData: heartRateData,
+      ),
+
+      const SizedBox(height: 16),
+
+      SpO2Display(
+        spo2Data: spo2Data,
+      ),
+
+      const SizedBox(height: 16),
+
+      StepsDisplay(
+        stepsData: stepsData,
+      ),
+
+      const SizedBox(height: 16),
+
+      SleepDisplay(
+        sleepData: sleepData,
+      ),
+
+      const SizedBox(height: 16),
+
+      ClearPendingQueueButton(
+        uploadQueueService:
+            uploadQueueService,
+      ),
+              ],),
             ),
           );
         }

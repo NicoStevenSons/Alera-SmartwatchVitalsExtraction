@@ -31,14 +31,8 @@ class SleepDataReader(
     suspend fun readRecentSleepSessions():
         List<SleepSessionData> {
 
-        val now =
-            Instant.now()
-
-        val sevenDaysAgo =
-            now.minus(
-                7,
-                ChronoUnit.DAYS
-            )
+        val now = Instant.now()
+        val startTime = now.minus(365, ChronoUnit.DAYS)
 
         val response =
             healthConnectClient.readRecords(
@@ -47,9 +41,9 @@ class SleepDataReader(
                         SleepSessionRecord::class,
                     timeRangeFilter =
                         TimeRangeFilter.between(
-                            sevenDaysAgo,
-                            now
-                        ),
+                                startTime,
+                                now
+                                 ),
                     ascendingOrder = false
                 )
             )
