@@ -5,12 +5,14 @@ import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.StepsRecord
+
 import androidx.lifecycle.lifecycleScope
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.launch
+
+import androidx.health.connect.client.records.StepsRecord
 import com.alera.payloadextraction.health.StepsDataReader
 import androidx.health.connect.client.records.SleepSessionRecord
 import com.alera.payloadextraction.health.SleepDataReader
@@ -294,17 +296,51 @@ private fun refreshSteps() {
             object : EventChannel.StreamHandler {
 
                 override fun onListen(
-                    arguments: Any?,
-                    events: EventChannel.EventSink?
-                ) {
-                    Log.d(
-                        "AleraFlutterBridge",
-                        "Flutter started listening"
-                    )
+    arguments: Any?,
+    events: EventChannel.EventSink?
+) {
+    Log.d(
+        "AleraFlutterBridge",
+        "Flutter started listening"
+    )
 
-                    PayloadEventBridge.attachSink(events)
+    PayloadEventBridge.attachSink(events)
 
-                }
+    lifecycleScope.launch {
+        val grantedPermissions =
+            healthConnectClient
+                .permissionController
+                .getGrantedPermissions()
+
+        val stepsPermission =
+            HealthPermission.getReadPermission(
+                StepsRecord::class
+            )
+
+        val sleepPermission =
+            HealthPermission.getReadPermission(
+                SleepSessionRecord::class
+            )
+
+        if (stepsPermission in grantedPermissions) {
+            Log.d(
+                "AleraHealthConnect",
+                "Flutter listener ready - refreshing steps"
+            )
+
+            readAndSendTodaySteps()
+        }
+
+        if (sleepPermission in grantedPermissions) {
+            Log.d(
+                "AleraHealthConnect",
+                "Flutter listener ready - refreshing sleep"
+            )
+
+            readAndSendRecentSleep()
+        }
+    }
+}
 
                 override fun onCancel(
                     arguments: Any?

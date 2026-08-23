@@ -132,12 +132,28 @@ late final WatchListenerController watchListenerController;
 
     onDeviceStatusUpdated:
         (DeviceStatusData data) {
-      if (!mounted) return;
-
+      if (!mounted) {
+        return;
+      } 
+    debugPrint(
+    'MAIN RECEIVED DEVICE STATUS: '
+    'battery=${data.batteryPercent}, '
+    'device=${data.deviceName}, '
+    'model=${data.deviceModel}, '
+    'connected=${data.connectedToPhone}, '
+    'phone=${data.connectedPhoneName}',
+  );
       setState(() {
-        deviceStatusData = data;
+  deviceStatusData = deviceStatusData.copyWith(
+    batteryPercent: data.batteryPercent,
+    deviceName: data.deviceName,
+    deviceModel: data.deviceModel,
+    connectedToPhone: data.connectedToPhone,
+    connectedPhoneName: data.connectedPhoneName,
+    measuredAt: data.measuredAt,
+    );
       });
-    },
+       },
 
     onSleepUpdated:
         (SleepData data) {
@@ -199,7 +215,7 @@ late final WatchListenerController watchListenerController;
               actions: [
                 Padding(padding: const EdgeInsetsGeometry.only(right: 12)
                 ),
-                IconButton(icon: Icon(deviceStatusData.connectedToPhone ? Icons.watch : Icons.watch_off,), 
+                IconButton(icon: Icon(deviceStatusData.connectedToPhone ==true ? Icons.watch : Icons.watch_off,), 
                 onPressed:(){
                   showDeviceStatusDialog(
                   context: context,

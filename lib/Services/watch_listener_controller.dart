@@ -37,19 +37,31 @@ class WatchListenerController {
   });
 
   void start() {
-    watchPayloadService.startListening(
-      onHeartRateReceived: _handleHeartRate,
-      onSpO2Received: _handleSpO2,
-      onStepsReceived: onStepsUpdated,
-      onDeviceStatusReceived: onDeviceStatusUpdated,
-      onSleepReceived: onSleepUpdated,
-      onError: (Object error) {
-        debugPrint(
-          'Payload listener error: $error',
-        );
-      },
-    );
-  }
+  watchPayloadService.startListening(
+    
+    onHeartRateReceived: _handleHeartRate,
+
+    onSpO2Received: _handleSpO2,
+
+    onStepsReceived: (StepsData data) {
+      onStepsUpdated(data);
+    },
+
+    onDeviceStatusReceived: (DeviceStatusData data) {
+      onDeviceStatusUpdated(data);
+    },
+
+    onSleepReceived: (SleepData data) {
+      onSleepUpdated(data);
+    },
+
+    onError: (Object error) {
+      debugPrint(
+        'Payload listener error: $error',
+      );
+    },
+  );
+}
 
   Future<void> _handleHeartRate(
     HeartRateData data,

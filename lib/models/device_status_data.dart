@@ -2,7 +2,7 @@ class DeviceStatusData {
   final int? batteryPercent;
   final String? deviceName;
   final String? deviceModel;
-  final bool connectedToPhone;
+  final bool? connectedToPhone;
   final String? connectedPhoneName;
   final String? measuredAt;
 
@@ -29,8 +29,7 @@ class DeviceStatusData {
           json['device_model'] as String?,
       connectedToPhone:
           json['connected_to_phone']
-              as bool? ??
-              false,
+              as bool?,
       connectedPhoneName:
           json['connected_phone_name']
               as String?,
@@ -44,7 +43,7 @@ class DeviceStatusData {
       batteryPercent: null,
       deviceName: null,
       deviceModel: null,
-      connectedToPhone: false,
+      connectedToPhone: null,
       connectedPhoneName: null,
       measuredAt: null,
     );
@@ -84,10 +83,14 @@ class DeviceStatusData {
   }
 
   String get displayedConnection {
-    return connectedToPhone
-        ? 'Connected'
-        : 'Disconnected';
+  if (connectedToPhone == null) {
+    return 'Unknown';
   }
+
+  return connectedToPhone == true
+      ? 'Connected'
+      : 'Disconnected';
+}
 
   String get displayedDeviceName {
     if (deviceName == null ||
