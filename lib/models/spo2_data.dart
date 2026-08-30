@@ -45,7 +45,7 @@ class SpO2Data {
 
   String get displayedPercent {
     if (percent == null || percent! <= 0) {
-      return '--';
+      return 'Waiting...';
     }
 
     return percent!.round().toString();

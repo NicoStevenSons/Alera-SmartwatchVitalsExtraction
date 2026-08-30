@@ -12,57 +12,46 @@ class StepsDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.stairs,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Total Steps: '
-              '${stepsData.displayedTotalSteps}',
-            ),
-          ],
-        ),
-        Text(
-          'Sessions: '
-          '${stepsData.sessions.length}',
-        ),
-        if (stepsData.sessions.isEmpty)
-          const Text(
-            'No step sessions received',
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12),
           ),
-        ...stepsData.sessions.map(
-          (StepSessionData session) {
-            return Padding(
-              padding: const EdgeInsets.only(
-                top: 16,
-              ),
-              child: Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+          child: Padding(padding: const EdgeInsets.all(16),
+          child: Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
                 children: [
-                  const Icon(
-                    Icons.stairs,
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${session.stepCount} steps\n'
-                      'Start: ${session.startTime}\n'
-                      'End: ${session.endTime}',
-                    ),
-                  ),
-                ],
+                  Icon(Icons.stairs,
+                color:Colors.blue),
+                Text('Activity'),
+                ]
               ),
-            );
-          },
-        ),
-      ],
+
+              Padding(
+                padding: const EdgeInsets.only(top: 70),
+                child: Row(
+                  children: [
+                     Text('${stepsData.sessions.length} sessions today',),
+                  ],
+                ),
+              ),
+
+              Row(
+                children: [Text('${stepsData.displayedTotalSteps} Steps',
+                        style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                        ),
+                                    ),],
+              )
+            ],
+          ),
+          ),
+
+      ),
     );
   }
 }
