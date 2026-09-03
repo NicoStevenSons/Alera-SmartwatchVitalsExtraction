@@ -5,7 +5,10 @@ import '../../design_system/alera_theme.dart';
 import '../../design_system/alera_typography.dart';
 import 'domain/repositories/caregiver_repository.dart';
 import 'domain/models/care_recipient.dart';
+import 'domain/models/caregiver_alert.dart';
 import 'presentation/home/caregiver_home_page.dart';
+import 'presentation/alerts/caregiver_alerts_page.dart';
+import 'presentation/alerts/caregiver_alert_detail_page.dart';
 import 'presentation/patient_detail/caregiver_patient_detail_page.dart';
 import 'presentation/people/caregiver_people_page.dart';
 
@@ -55,6 +58,24 @@ class _CaregiverShellState extends State<CaregiverShell> {
     );
   }
 
+  void _openAlertDetail(BuildContext context, CaregiverAlert alert) {
+    CareRecipient? recipient;
+    for (final CareRecipient candidate
+        in widget.repository.getCareRecipients()) {
+      if (candidate.id == alert.careRecipientId) {
+        recipient = candidate;
+        break;
+      }
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            CaregiverAlertDetailPage(alert: alert, careRecipient: recipient),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -95,43 +116,66 @@ class _CaregiverShellState extends State<CaregiverShell> {
                     onCareRecipientSelected: (careRecipient) =>
                         _openCareRecipient(context, careRecipient),
                   ),
-                  const _PlaceholderPage(title: 'Alerts'),
+                  CaregiverAlertsPage(
+                    alerts: widget.repository.getAlerts(),
+                    careRecipients: widget.repository.getCareRecipients(),
+                    onAlertTap: (alert) => _openAlertDetail(context, alert),
+                  ),
                   const _PlaceholderPage(title: 'Reminders', isTemporary: true),
                   const _PlaceholderPage(title: 'More', isTemporary: true),
                 ],
               ),
             ),
-            bottomNavigationBar: NavigationBar(
-              height: 68,
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view_rounded),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.people_outline),
-                  selectedIcon: Icon(Icons.people),
-                  label: 'People',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.notifications_none),
-                  selectedIcon: Icon(Icons.notifications),
-                  label: 'Alerts',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.schedule_outlined),
-                  selectedIcon: Icon(Icons.schedule),
-                  label: 'Reminders',
-                ),
-                NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
-              ],
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface, // Matches the navbar background
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06), // Subtle shadow
+                    blurRadius: 5,
+                    offset: const Offset(
+                      0,
+                      -3,
+                    ), // Negative Y casts the shadow upward
+                  ),
+                ],
+              ),
+              child: NavigationBar(
+                elevation:
+                    0, // Removes M3's default tint elevation so your custom shadow handles depth
+                height: 68,
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: (index) {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.grid_view_outlined),
+                    selectedIcon: Icon(Icons.grid_view_rounded),
+                    label: 'Home',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.people_outline),
+                    selectedIcon: Icon(Icons.people),
+                    label: 'People',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.notifications_none),
+                    selectedIcon: Icon(Icons.notifications),
+                    label: 'Alerts',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.schedule_outlined),
+                    selectedIcon: Icon(Icons.schedule),
+                    label: 'Reminders',
+                  ),
+                  NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
+                ],
+              ),
             ),
           );
         },

@@ -19,9 +19,14 @@ class HomePatientHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFB590F0), Color(0xFFD7C3FA)],
-        ),
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFB590F0),
+          Color(0xFFD7C3FA),
+        ],
+      ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),
       child: Padding(
@@ -46,12 +51,22 @@ class HomePatientHeader extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        '◷ Last Check-in: ${_time(careRecipient.healthSnapshot.lastCheckIn)}',
-                        style: const TextStyle(
-                          color: AleraColors.textSecondary,
-                          fontSize: 11,
-                        ),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            size: 15,
+                            color: AleraColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Last Check-in: ${_time(careRecipient.healthSnapshot.lastCheckIn)}',
+                            style: const TextStyle(
+                              color: AleraColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

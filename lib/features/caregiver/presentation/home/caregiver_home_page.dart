@@ -45,11 +45,11 @@ class CaregiverHomePage extends StatelessWidget {
           onMessage: () => _mock(context, 'Message'),
         ),
         SizedBox(
-          height: 48,
+          height: 60,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(
               horizontal: AleraSpacing.medium,
-              vertical: 8,
+              vertical: 14,
             ),
             scrollDirection: Axis.horizontal,
             itemCount: careRecipient.quickMessages.length,
@@ -61,17 +61,21 @@ class CaregiverHomePage extends StatelessWidget {
                 onPressed: () => _mock(context, 'Quick message'),
                 backgroundColor: Colors.white,
                 side: BorderSide.none,
+                shape: const StadiumBorder(),
                 labelStyle: const TextStyle(
                   color: AleraColors.primary,
                   fontSize: 11,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
               );
             },
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           child: Column(
             children: [
               HomeHealthSummary(

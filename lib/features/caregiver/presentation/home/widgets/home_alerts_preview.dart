@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_typography.dart';
-import '../../../../../design_system/widgets/alera_card.dart';
+import '../../../../../design_system/widgets/alera_section_card.dart';
+import '../../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../../domain/models/caregiver_alert.dart';
 
 class HomeAlertsPreview extends StatelessWidget {
@@ -20,27 +21,13 @@ class HomeAlertsPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleAlerts = alerts.take(2).toList();
-    return AleraCard(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    return AleraSectionCard(
+      title: 'Alerts (${alerts.length} active)',
+      actionLabel: 'View All Alerts',
+      onActionPressed: onViewAll,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Alerts (${alerts.length} active)',
-                  style: AleraTypography.sectionTitle.copyWith(fontSize: 16),
-                ),
-              ),
-              TextButton(
-                onPressed: onViewAll,
-                child: const Text(
-                  'View All Alerts',
-                  style: TextStyle(fontSize: 11),
-                ),
-              ),
-            ],
-          ),
           if (visibleAlerts.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -80,10 +67,13 @@ class _AlertRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                heart ? Icons.monitor_heart : Icons.info,
-                color: color,
-                size: 27,
+              AleraSvgIcon(
+                assetPath: heart
+                    ? 'alera-figma-assets/assets/icons/mini_status/heart_rate.svg'
+                    : 'alera-figma-assets/assets/icons/mini_status/info.svg',
+                width: 28,
+                height: 28,
+                semanticLabel: alert.title,
               ),
               const SizedBox(width: 9),
               Expanded(

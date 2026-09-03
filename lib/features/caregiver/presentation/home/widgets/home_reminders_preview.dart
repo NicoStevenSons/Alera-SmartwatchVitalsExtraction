@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_typography.dart';
-import '../../../../../design_system/widgets/alera_card.dart';
+import '../../../../../design_system/widgets/alera_section_card.dart';
 import '../../../domain/models/caregiver_reminder.dart';
 
 class HomeRemindersPreview extends StatelessWidget {
@@ -19,27 +19,12 @@ class HomeRemindersPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AleraCard(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    return AleraSectionCard(
+      title: 'Reminders',
+      actionLabel: 'View all Reminders',
+      onActionPressed: onViewAll,
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Reminders',
-                  style: AleraTypography.sectionTitle.copyWith(fontSize: 16),
-                ),
-              ),
-              TextButton(
-                onPressed: onViewAll,
-                child: const Text(
-                  'View all Reminders',
-                  style: TextStyle(fontSize: 11),
-                ),
-              ),
-            ],
-          ),
           if (reminders.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),

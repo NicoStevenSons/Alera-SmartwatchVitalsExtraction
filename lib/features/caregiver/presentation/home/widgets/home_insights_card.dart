@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_typography.dart';
-import '../../../../../design_system/widgets/alera_card.dart';
+import '../../../../../design_system/widgets/alera_section_card.dart';
+import '../../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../../domain/models/health_snapshot.dart';
 
 class HomeInsightsCard extends StatelessWidget {
@@ -14,18 +15,13 @@ class HomeInsightsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final String sleep =
         '${snapshot.sleepDuration.inHours}h ${snapshot.sleepDuration.inMinutes.remainder(60)}m';
-    return AleraCard(
-      padding: const EdgeInsets.all(12),
+    return AleraSectionCard(
+      title: "Today's Insights",
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Today's Insights",
-            style: AleraTypography.sectionTitle.copyWith(fontSize: 16),
-          ),
-          const SizedBox(height: 10),
           _Insight(
-            icon: Icons.water_drop,
+            assetPath: 'alera-figma-assets/assets/icons/mini_status/spo2.svg',
             color: const Color(0xFF8A78F0),
             title: snapshot.spo2Percent == null
                 ? 'No overnight SpO2 reading'
@@ -36,7 +32,8 @@ class HomeInsightsCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _Insight(
-            icon: Icons.directions_walk,
+            assetPath:
+                'alera-figma-assets/assets/icons/mini_status/activity.svg',
             color: const Color(0xFF79CF2E),
             title: snapshot.steps == null
                 ? 'No activity data today'
@@ -47,7 +44,7 @@ class HomeInsightsCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _Insight(
-            icon: Icons.bedtime,
+            assetPath: 'alera-figma-assets/assets/icons/mini_status/sleep.svg',
             color: const Color(0xFF9A72F0),
             title: 'Slept $sleep',
             subtitle: 'Mock sleep summary',
@@ -59,13 +56,13 @@ class HomeInsightsCard extends StatelessWidget {
 }
 
 class _Insight extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final Color color;
   final String title;
   final String subtitle;
 
   const _Insight({
-    required this.icon,
+    required this.assetPath,
     required this.color,
     required this.title,
     required this.subtitle,
@@ -76,7 +73,12 @@ class _Insight extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 20),
+        AleraSvgIcon(
+          assetPath: assetPath,
+          width: 20,
+          height: 20,
+          semanticLabel: title,
+        ),
         const SizedBox(width: 7),
         Expanded(
           child: Column(
