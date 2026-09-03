@@ -9,6 +9,7 @@ class CareRecipient {
   final CareStatus status;
   final int alertCount;
   final int reminderCount;
+  final List<String> quickMessages;
   final HealthSnapshot healthSnapshot;
 
   const CareRecipient({
@@ -18,6 +19,7 @@ class CareRecipient {
     required this.status,
     required this.alertCount,
     required this.reminderCount,
+    required this.quickMessages,
     required this.healthSnapshot,
   });
 }

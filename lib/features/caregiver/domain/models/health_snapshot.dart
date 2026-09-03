@@ -14,6 +14,8 @@ class HealthSnapshot {
   final int? heartRateBpm;
   final double? spo2Percent;
   final int? steps;
+  final String stressLabel;
+  final Duration sleepDuration;
   final int careRiskScore;
   final String careRiskLabel;
   final DateTime lastCheckIn;
@@ -23,6 +25,8 @@ class HealthSnapshot {
     required this.heartRateBpm,
     required this.spo2Percent,
     required this.steps,
+    required this.stressLabel,
+    required this.sleepDuration,
     required this.careRiskScore,
     required this.careRiskLabel,
     required this.lastCheckIn,

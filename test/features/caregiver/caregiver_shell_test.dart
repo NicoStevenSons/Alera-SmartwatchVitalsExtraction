@@ -15,7 +15,7 @@ void main() {
 
     expect(find.byType(IndexedStack), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(5));
-    expect(find.text('Home screen placeholder'), findsOneWidget);
+    expect(find.text('Maria Santos'), findsOneWidget);
 
     await tester.tap(find.text('People'));
     await tester.pumpAndSettle();
@@ -34,7 +34,7 @@ void main() {
     expect(stack.children, hasLength(5));
   });
 
-  testWidgets('selecting a patient switches to Home and retains People page', (
+  testWidgets('selecting a patient pushes detail and retains People page', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -55,14 +55,20 @@ void main() {
     await tester.tap(find.text('Maria Santos'));
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('caregiver-patient-detail-maria-santos')),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(peoplePage, findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
     final NavigationBar navigationBar = tester.widget(
       find.byType(NavigationBar),
     );
-    expect(navigationBar.selectedIndex, 0);
-    expect(
-      find.byKey(const ValueKey('selected-patient-maria-santos')),
-      findsOneWidget,
-    );
+    expect(navigationBar.selectedIndex, 1);
     expect(peoplePage, findsOneWidget);
   });
 }

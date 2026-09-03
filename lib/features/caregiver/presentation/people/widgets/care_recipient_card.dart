@@ -28,7 +28,10 @@ class CareRecipientCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _InitialAvatar(name: careRecipient.name),
+          Transform.translate(
+            offset: const Offset(0, -18),
+            child: _InitialAvatar(name: careRecipient.name),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
