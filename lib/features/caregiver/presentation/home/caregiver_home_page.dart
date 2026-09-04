@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_spacing.dart';
+import '../../../../design_system/widgets/alera_pill.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
 import '../../domain/models/caregiver_reminder.dart';
@@ -56,20 +56,10 @@ class CaregiverHomePage extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final String message = careRecipient.quickMessages[index];
-              return ActionChip(
-                label: Text(message),
-                onPressed: () => _mock(context, 'Quick message'),
-                backgroundColor: Colors.white,
-                side: BorderSide.none,
-                shape: const StadiumBorder(),
-                labelStyle: const TextStyle(
-                  color: AleraColors.primary,
-                  fontSize: 11,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
+              return AleraPill(
+                label: message,
+                variant: AleraPillVariant.action,
+                onTap: () => _mock(context, 'Quick message'),
               );
             },
           ),

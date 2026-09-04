@@ -15,26 +15,16 @@ class DeviceStatusData {
     required this.measuredAt,
   });
 
-  factory DeviceStatusData.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final num? batteryValue =
-        json['battery_percent'] as num?;
+  factory DeviceStatusData.fromJson(Map<String, dynamic> json) {
+    final num? batteryValue = json['battery_percent'] as num?;
 
     return DeviceStatusData(
       batteryPercent: batteryValue?.toInt(),
-      deviceName:
-          json['device_name'] as String?,
-      deviceModel:
-          json['device_model'] as String?,
-      connectedToPhone:
-          json['connected_to_phone']
-              as bool?,
-      connectedPhoneName:
-          json['connected_phone_name']
-              as String?,
-      measuredAt:
-          json['measured_at'] as String?,
+      deviceName: json['device_name'] as String?,
+      deviceModel: json['device_model'] as String?,
+      connectedToPhone: json['connected_to_phone'] as bool?,
+      connectedPhoneName: json['connected_phone_name'] as String?,
+      measuredAt: json['measured_at'] as String?,
     );
   }
 
@@ -49,7 +39,7 @@ class DeviceStatusData {
     );
   }
 
-   DeviceStatusData copyWith({
+  DeviceStatusData copyWith({
     int? batteryPercent,
     String? deviceName,
     String? deviceModel,
@@ -58,22 +48,15 @@ class DeviceStatusData {
     String? measuredAt,
   }) {
     return DeviceStatusData(
-      batteryPercent:
-          batteryPercent ?? this.batteryPercent,
-      deviceName:
-          deviceName ?? this.deviceName,
-      deviceModel:
-          deviceModel ?? this.deviceModel,
-      connectedToPhone:
-          connectedToPhone ?? this.connectedToPhone,
-      connectedPhoneName:
-          connectedPhoneName ??
-              this.connectedPhoneName,
-      measuredAt:
-          measuredAt ?? this.measuredAt,
+      batteryPercent: batteryPercent ?? this.batteryPercent,
+      deviceName: deviceName ?? this.deviceName,
+      deviceModel: deviceModel ?? this.deviceModel,
+      connectedToPhone: connectedToPhone ?? this.connectedToPhone,
+      connectedPhoneName: connectedPhoneName ?? this.connectedPhoneName,
+      measuredAt: measuredAt ?? this.measuredAt,
     );
   }
-  
+
   String get displayedBattery {
     if (batteryPercent == null) {
       return '--';
@@ -83,18 +66,15 @@ class DeviceStatusData {
   }
 
   String get displayedConnection {
-  if (connectedToPhone == null) {
-    return 'Unknown';
+    if (connectedToPhone == null) {
+      return 'Unknown';
+    }
+
+    return connectedToPhone == true ? 'Connected' : 'Disconnected';
   }
 
-  return connectedToPhone == true
-      ? 'Connected'
-      : 'Disconnected';
-}
-
   String get displayedDeviceName {
-    if (deviceName == null ||
-        deviceName!.isEmpty) {
+    if (deviceName == null || deviceName!.isEmpty) {
       return 'Unknown device';
     }
 
@@ -102,8 +82,7 @@ class DeviceStatusData {
   }
 
   String get displayedPhoneName {
-    if (connectedPhoneName == null ||
-        connectedPhoneName!.isEmpty) {
+    if (connectedPhoneName == null || connectedPhoneName!.isEmpty) {
       return 'No phone connected';
     }
 

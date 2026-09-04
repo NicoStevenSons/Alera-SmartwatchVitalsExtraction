@@ -4,8 +4,7 @@ import 'package:sqflite/sqflite.dart';
 class AleraDatabase {
   AleraDatabase._();
 
-  static final AleraDatabase instance =
-      AleraDatabase._();
+  static final AleraDatabase instance = AleraDatabase._();
 
   static Database? _database;
 
@@ -20,27 +19,15 @@ class AleraDatabase {
   }
 
   Future<Database> _initializeDatabase() async {
-    final String databasePath =
-        await getDatabasesPath();
+    final String databasePath = await getDatabasesPath();
 
-    final String path = join(
-      databasePath,
-      'alera_local.db',
-    );
+    final String path = join(databasePath, 'alera_local.db');
 
-    return openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDatabase,
-    );
+    return openDatabase(path, version: 1, onCreate: _createDatabase);
   }
 
-  Future<void> _createDatabase(
-    Database db,
-    int version,
-  ) async {
-     await db.execute(
-    '''
+  Future<void> _createDatabase(Database db, int version) async {
+    await db.execute('''
     CREATE TABLE upload_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       metric_type TEXT NOT NULL,
@@ -50,7 +37,6 @@ class AleraDatabase {
       queue_status TEXT NOT NULL DEFAULT 'PENDING',
       last_error TEXT
       )
-    ''',
-    );
+    ''');
   }
 }

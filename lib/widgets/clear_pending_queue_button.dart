@@ -5,23 +5,17 @@ import '../Services/upload_queue_service.dart';
 class ClearPendingQueueButton extends StatelessWidget {
   final UploadQueueService uploadQueueService;
 
-  const ClearPendingQueueButton({
-    super.key,
-    required this.uploadQueueService,
-  });
+  const ClearPendingQueueButton({super.key, required this.uploadQueueService});
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () async {
-        final bool? confirmed =
-            await showDialog<bool>(
+        final bool? confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text(
-                'Clear Pending Queue?',
-              ),
+              title: const Text('Clear Pending Queue?'),
               content: const Text(
                 'This will permanently delete all '
                 'health readings currently waiting '
@@ -49,9 +43,7 @@ class ClearPendingQueueButton extends StatelessWidget {
           return;
         }
 
-        final int deletedCount =
-            await uploadQueueService
-                .clearPendingQueue();
+        final int deletedCount = await uploadQueueService.clearPendingQueue();
 
         debugPrint(
           'Cleared $deletedCount pending '
@@ -71,9 +63,7 @@ class ClearPendingQueueButton extends StatelessWidget {
           ),
         );
       },
-      child: const Text(
-        'Clear Pending Queue',
-      ),
+      child: const Text('Clear Pending Queue'),
     );
   }
 }

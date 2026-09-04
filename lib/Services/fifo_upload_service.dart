@@ -21,9 +21,7 @@ class FifoUploadService {
 
   Future<void> processQueue() async {
     if (_isProcessing) {
-      debugPrint(
-        'FIFO uploader already running.',
-      );
+      debugPrint('FIFO uploader already running.');
       return;
     }
 
@@ -31,49 +29,34 @@ class FifoUploadService {
 
     try {
       while (true) {
-        final Map<String, dynamic>? row =
-            await uploadQueueService
-                .getOldestPending();
+        final Map<String, dynamic>? row = await uploadQueueService
+            .getOldestPending();
 
         if (row == null) {
-          debugPrint(
-            'FIFO queue is empty.',
-          );
+          debugPrint('FIFO queue is empty.');
           break;
         }
 
-        final int id =
-            row['id'] as int;
+        final int id = row['id'] as int;
 
-        final int retryCount =
-            row['retry_count'] as int;
+        final int retryCount = row['retry_count'] as int;
 
-        final String payloadJson =
-            row['payload_json'] as String;
+        final String payloadJson = row['payload_json'] as String;
 
-        final Map<String, dynamic> payload =
-            Map<String, dynamic>.from(
+        final Map<String, dynamic> payload = Map<String, dynamic>.from(
           jsonDecode(payloadJson),
         );
 
-        debugPrint(
-          'Uploading Queue ID: $id',
-        );
+        debugPrint('Uploading Queue ID: $id');
 
         try {
-          final http.Response response =
-              await healthEventApiService
-                  .sendHealthEvent(payload);
+          final http.Response response = await healthEventApiService
+              .sendHealthEvent(payload);
 
-          final int statusCode =
-              response.statusCode;
+          final int statusCode = response.statusCode;
 
-          if (
-            statusCode >= 200 &&
-            statusCode < 300
-          ) {
-            await uploadQueueService
-                .deleteById(id);
+          if (statusCode >= 200 && statusCode < 300) {
+            await uploadQueueService.deleteById(id);
 
             debugPrint(
               'Queue ID $id uploaded '
@@ -84,17 +67,13 @@ class FifoUploadService {
           }
 
           if (statusCode == 422) {
-            final int newRetryCount =
-                retryCount + 1;
+            final int newRetryCount = retryCount + 1;
 
             if (newRetryCount >= 3) {
-              await uploadQueueService
-                  .moveToDeadLetter(
+              await uploadQueueService.moveToDeadLetter(
                 id: id,
-                retryCount:
-                    newRetryCount,
-                error:
-                    'HTTP 422: ${response.body}',
+                retryCount: newRetryCount,
+                error: 'HTTP 422: ${response.body}',
               );
 
               debugPrint(
@@ -107,13 +86,10 @@ class FifoUploadService {
               continue;
             }
 
-            await uploadQueueService
-                .updateFailure(
+            await uploadQueueService.updateFailure(
               id: id,
-              retryCount:
-                  newRetryCount,
-              error:
-                  'HTTP 422: ${response.body}',
+              retryCount: newRetryCount,
+              error: 'HTTP 422: ${response.body}',
             );
 
             debugPrint(
@@ -126,8 +102,7 @@ class FifoUploadService {
 
           // SERVER-SIDE TEMPORARY FAILURE
           if (statusCode >= 500) {
-            await uploadQueueService
-                .updateTemporaryFailure(
+            await uploadQueueService.updateTemporaryFailure(
               id: id,
               error:
                   'HTTP $statusCode: '
@@ -143,8 +118,7 @@ class FifoUploadService {
           }
 
           // OTHER HTTP ERRORS
-          await uploadQueueService
-              .updateTemporaryFailure(
+          await uploadQueueService.updateTemporaryFailure(
             id: id,
             error:
                 'HTTP $statusCode: '
@@ -159,11 +133,9 @@ class FifoUploadService {
 
           break;
         } on TimeoutException catch (error) {
-          await uploadQueueService
-              .updateTemporaryFailure(
+          await uploadQueueService.updateTemporaryFailure(
             id: id,
-            error:
-                'Timeout: $error',
+            error: 'Timeout: $error',
           );
 
           debugPrint(
@@ -173,11 +145,9 @@ class FifoUploadService {
 
           break;
         } on SocketException catch (error) {
-          await uploadQueueService
-              .updateTemporaryFailure(
+          await uploadQueueService.updateTemporaryFailure(
             id: id,
-            error:
-                'Network error: $error',
+            error: 'Network error: $error',
           );
 
           debugPrint(
@@ -187,8 +157,7 @@ class FifoUploadService {
 
           break;
         } catch (error) {
-          await uploadQueueService
-              .updateTemporaryFailure(
+          await uploadQueueService.updateTemporaryFailure(
             id: id,
             error:
                 'Unexpected upload error: '

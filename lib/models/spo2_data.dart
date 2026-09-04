@@ -10,11 +10,7 @@ class SpO2Data {
   });
 
   factory SpO2Data.empty() {
-    return const SpO2Data(
-      percent: null,
-      status: null,
-      measuredAt: null,
-    );
+    return const SpO2Data(percent: null, status: null, measuredAt: null);
   }
 
   Map<String, dynamic> toJson() {
@@ -26,20 +22,15 @@ class SpO2Data {
     };
   }
 
-  factory SpO2Data.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final num? percentValue =
-        json['spo2_percent'] as num?;
+  factory SpO2Data.fromJson(Map<String, dynamic> json) {
+    final num? percentValue = json['spo2_percent'] as num?;
 
-    final num? statusValue =
-        json['status'] as num?;
+    final num? statusValue = json['status'] as num?;
 
     return SpO2Data(
       percent: percentValue?.toDouble(),
       status: statusValue?.toInt(),
-      measuredAt:
-          json['measured_at'] as String?,
+      measuredAt: json['measured_at'] as String?,
     );
   }
 

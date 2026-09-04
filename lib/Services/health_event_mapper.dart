@@ -9,8 +9,7 @@ class HealthEventMapper {
     String validationStatus = 'VALID_REALTIME',
     String? validationReason,
   }) {
-    final DateTime timestamp =
-        DateTime.parse(recordedAt).toUtc();
+    final DateTime timestamp = DateTime.parse(recordedAt).toUtc();
 
     return {
       'patient_id': patientId,
@@ -38,8 +37,7 @@ class HealthEventMapper {
     String validationStatus = 'VALID_REALTIME',
     String? validationReason,
   }) {
-    final DateTime timestamp =
-        DateTime.parse(recordedAt).toUtc();
+    final DateTime timestamp = DateTime.parse(recordedAt).toUtc();
 
     return {
       'patient_id': patientId,

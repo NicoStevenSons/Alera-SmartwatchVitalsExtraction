@@ -4,6 +4,7 @@ import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_spacing.dart';
 import '../../../../../design_system/alera_typography.dart';
 import '../../../../../design_system/widgets/alera_card.dart';
+import '../../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../../domain/models/care_recipient.dart';
 import '../../../domain/models/health_snapshot.dart';
 
@@ -20,69 +21,78 @@ class CareRecipientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isStable = careRecipient.status == CareStatus.stable;
-    final List<MonitoringDevice> devices = careRecipient.healthSnapshot.devices;
+    final List<MonitoringDevice> devices =
+        careRecipient.healthSnapshot.devices;
 
     return AleraCard(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Transform.translate(
-            offset: const Offset(0, -18),
-            child: _InitialAvatar(name: careRecipient.name),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  careRecipient.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AleraTypography.sectionTitle.copyWith(
-                    fontSize: 19,
-                    height: 1.05,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                _StatusRow(
-                  icon: isStable ? Icons.check : Icons.warning_rounded,
-                  iconColor: isStable
-                      ? AleraColors.success
-                      : AleraColors.warning,
-                  label: isStable ? 'Stable' : 'High Heart Rate',
-                ),
-                const SizedBox(height: 2), // ← vertical gap
-                _StatusRow(
-                  icon: Icons.notifications,
-                  iconColor: AleraColors.primary,
-                  label: careRecipient.alertCount == 0
-                      ? 'No Alerts'
-                      : '${careRecipient.alertCount} Alerts',
-                ),
-                const SizedBox(height: 2), // ← vertical gap
-                _StatusRow(
-                  icon: Icons.info,
-                  iconColor: AleraColors.information,
-                  label: '${careRecipient.reminderCount} Reminders',
-                ),
-                if (devices.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 2,
-                    children: devices
-                        .map((device) => _DeviceBattery(device: device))
-                        .toList(),
-                  ),
-                ],
-              ],
+      padding: const EdgeInsets.fromLTRB(10, 10, 14, 12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: _InitialAvatar(name: careRecipient.name),
             ),
-          ),
-          const Icon(Icons.chevron_right, color: Color(0xFFB7B2C3), size: 24),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    careRecipient.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AleraTypography.sectionTitle.copyWith(
+                      fontSize: 18,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  _StatusRow(
+                    assetPath: isStable
+                        ? 'alera-figma-assets/assets/icons/status/stable.svg'
+                        : 'alera-figma-assets/assets/icons/status/warning.svg',
+                    label: isStable ? 'Stable' : 'High Heart Rate',
+                  ),
+                  const SizedBox(height: 2),
+                  _StatusRow(
+                    assetPath:
+                        'alera-figma-assets/assets/icons/status/alert.svg',
+                    label: careRecipient.alertCount == 0
+                        ? 'No Alerts'
+                        : '${careRecipient.alertCount} Alerts',
+                  ),
+                  const SizedBox(height: 2),
+                  _StatusRow(
+                    assetPath:
+                        'alera-figma-assets/assets/icons/status/reminder.svg',
+                    label: '${careRecipient.reminderCount} Reminders',
+                  ),
+                  if (devices.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 2,
+                      children: devices
+                          .map((device) => _DeviceBattery(device: device))
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Align(
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.chevron_right,
+                color: Color(0xFFB7B2C3),
+                size: 24,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -105,9 +115,9 @@ class _InitialAvatar extends StatelessWidget {
         .map((word) => word.characters.first.toUpperCase())
         .join();
     const List<Color> colors = [
-      Color(0xFF8165C7),
-      Color(0xFF4D91A8),
-      Color(0xFFB36B8D),
+      AleraColors.primary,
+      AleraColors.information,
+      AleraColors.critical,
     ];
     final int colorIndex =
         name.codeUnits.fold(0, (sum, value) => sum + value) % colors.length;
@@ -128,32 +138,21 @@ class _InitialAvatar extends StatelessWidget {
 }
 
 class _StatusRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
+  final String assetPath;
   final String label;
 
-  const _StatusRow({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-  });
+  const _StatusRow({required this.assetPath, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: Icon(icon, color: Colors.white, size: 11),
-          ),
-        ),
-        const SizedBox(width: 10),
+        AleraSvgIcon(assetPath: assetPath, width: 16, height: 16),
+        const SizedBox(width: 6),
         Expanded(
           child: Text(
             label,
-            style: AleraTypography.body.copyWith(fontSize: 14, height: 1),
+            style: AleraTypography.body.copyWith(fontSize: 13, height: 1),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

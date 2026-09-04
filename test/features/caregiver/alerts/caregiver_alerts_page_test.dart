@@ -57,7 +57,10 @@ void main() {
   ) async {
     await tester.pumpWidget(buildPage());
 
-    await tester.tap(find.text('High Heart Rate'));
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
+    await tester.pump();
+    final Finder viewMore = find.text('View Details').first;
+    await tester.tap(viewMore);
     await tester.pump();
     expect(find.text('Alert detail coming next'), findsOneWidget);
   });

@@ -22,38 +22,28 @@ import '../widgets/spo2_display.dart';
 import '../widgets/steps_display.dart';
 
 class ElderlyInterface extends StatefulWidget {
-  const ElderlyInterface({
-    super.key,
-  });
+  const ElderlyInterface({super.key});
 
   @override
-  State<ElderlyInterface> createState() =>
-      _ElderlyInterfaceState();
+  State<ElderlyInterface> createState() => _ElderlyInterfaceState();
 }
 
-class _ElderlyInterfaceState
-    extends State<ElderlyInterface>
+class _ElderlyInterfaceState extends State<ElderlyInterface>
     with WidgetsBindingObserver {
+  final WatchPayloadService watchPayloadService = WatchPayloadService();
 
-  final WatchPayloadService watchPayloadService =
-      WatchPayloadService();
-
-  final HealthEventApiService healthEventApiService =
-      HealthEventApiService(
+  final HealthEventApiService healthEventApiService = HealthEventApiService(
     baseUrl: AppConfig.backendBaseUrl,
     patientId: AppConfig.testPatientId,
   );
 
-  final UploadQueueService uploadQueueService =
-      UploadQueueService();
+  final UploadQueueService uploadQueueService = UploadQueueService();
 
   late final FifoUploadService fifoUploadService;
 
-  late final WatchListenerController
-      watchListenerController;
+  late final WatchListenerController watchListenerController;
 
-  HeartRateData heartRateData =
-      const HeartRateData(
+  HeartRateData heartRateData = const HeartRateData(
     bpm: null,
     status: null,
     measuredAt: null,
@@ -63,8 +53,7 @@ class _ElderlyInterfaceState
 
   StepsData stepsData = StepsData.empty();
 
-  DeviceStatusData deviceStatusData =
-      DeviceStatusData.empty();
+  DeviceStatusData deviceStatusData = DeviceStatusData.empty();
 
   SleepData sleepData = SleepData.empty();
 
@@ -75,53 +64,37 @@ class _ElderlyInterfaceState
     WidgetsBinding.instance.addObserver(this);
 
     fifoUploadService = FifoUploadService(
-      uploadQueueService:
-          uploadQueueService,
-      healthEventApiService:
-          healthEventApiService,
+      uploadQueueService: uploadQueueService,
+      healthEventApiService: healthEventApiService,
     );
 
-    watchListenerController =
-        WatchListenerController(
-      watchPayloadService:
-          watchPayloadService,
-      uploadQueueService:
-          uploadQueueService,
-      healthEventApiService:
-          healthEventApiService,
-      fifoUploadService:
-          fifoUploadService,
+    watchListenerController = WatchListenerController(
+      watchPayloadService: watchPayloadService,
+      uploadQueueService: uploadQueueService,
+      healthEventApiService: healthEventApiService,
+      fifoUploadService: fifoUploadService,
 
-      onHeartRateUpdated:
-          (HeartRateData data) {
+      onHeartRateUpdated: (HeartRateData data) {
         if (!mounted) return;
 
         setState(() {
           heartRateData = data;
 
-          deviceStatusData =
-              deviceStatusData.copyWith(
-            connectedToPhone: true,
-          );
+          deviceStatusData = deviceStatusData.copyWith(connectedToPhone: true);
         });
       },
 
-      onSpO2Updated:
-          (SpO2Data data) {
+      onSpO2Updated: (SpO2Data data) {
         if (!mounted) return;
 
         setState(() {
           spo2Data = data;
 
-          deviceStatusData =
-              deviceStatusData.copyWith(
-            connectedToPhone: true,
-          );
+          deviceStatusData = deviceStatusData.copyWith(connectedToPhone: true);
         });
       },
 
-      onStepsUpdated:
-          (StepsData data) {
+      onStepsUpdated: (StepsData data) {
         if (!mounted) return;
 
         setState(() {
@@ -129,8 +102,7 @@ class _ElderlyInterfaceState
         });
       },
 
-      onDeviceStatusUpdated:
-          (DeviceStatusData data) {
+      onDeviceStatusUpdated: (DeviceStatusData data) {
         if (!mounted) {
           return;
         }
@@ -145,26 +117,18 @@ class _ElderlyInterfaceState
         );
 
         setState(() {
-          deviceStatusData =
-              deviceStatusData.copyWith(
-            batteryPercent:
-                data.batteryPercent,
-            deviceName:
-                data.deviceName,
-            deviceModel:
-                data.deviceModel,
-            connectedToPhone:
-                data.connectedToPhone,
-            connectedPhoneName:
-                data.connectedPhoneName,
-            measuredAt:
-                data.measuredAt,
+          deviceStatusData = deviceStatusData.copyWith(
+            batteryPercent: data.batteryPercent,
+            deviceName: data.deviceName,
+            deviceModel: data.deviceModel,
+            connectedToPhone: data.connectedToPhone,
+            connectedPhoneName: data.connectedPhoneName,
+            measuredAt: data.measuredAt,
           );
         });
       },
 
-      onSleepUpdated:
-          (SleepData data) {
+      onSleepUpdated: (SleepData data) {
         if (!mounted) return;
 
         setState(() {
@@ -183,22 +147,15 @@ class _ElderlyInterfaceState
       return;
     }
 
-    debugPrint(
-      'Checking pending upload queue...',
-    );
+    debugPrint('Checking pending upload queue...');
 
     await fifoUploadService.processQueue();
   }
 
   @override
-  void didChangeAppLifecycleState(
-    AppLifecycleState state,
-  ) {
-    if (state ==
-        AppLifecycleState.resumed) {
-      debugPrint(
-        'App resumed. Processing pending queue.',
-      );
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('App resumed. Processing pending queue.');
 
       _processPendingQueue();
     }
@@ -206,8 +163,7 @@ class _ElderlyInterfaceState
 
   @override
   void dispose() {
-    WidgetsBinding.instance
-        .removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
 
     watchPayloadService.dispose();
 
@@ -222,30 +178,21 @@ class _ElderlyInterfaceState
         appBar: AppBar(
           backgroundColor: Colors.purple,
 
-          title: const Text(
-            'Alera',
-          ),
+          title: const Text('Alera'),
 
           bottom: const TabBar(
             labelColor: Colors.white,
-            unselectedLabelColor:
-                Colors.white70,
+            unselectedLabelColor: Colors.white70,
             tabs: [
-              Tab(
-                text: 'Vitals',
-              ),
-              Tab(
-                text: 'Reminders',
-              ),
+              Tab(text: 'Vitals'),
+              Tab(text: 'Reminders'),
             ],
           ),
 
           actions: [
             IconButton(
               icon: Icon(
-                deviceStatusData
-                            .connectedToPhone ==
-                        true
+                deviceStatusData.connectedToPhone == true
                     ? Icons.watch
                     : Icons.watch_off,
               ),
@@ -253,15 +200,12 @@ class _ElderlyInterfaceState
               onPressed: () {
                 showDeviceStatusDialog(
                   context: context,
-                  deviceStatusData:
-                      deviceStatusData,
+                  deviceStatusData: deviceStatusData,
                 );
               },
             ),
 
-            const SizedBox(
-              width: 12,
-            ),
+            const SizedBox(width: 12),
           ],
         ),
 
@@ -269,59 +213,34 @@ class _ElderlyInterfaceState
           children: [
             // VITALS TAB
             SingleChildScrollView(
-              padding:
-                  const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
 
               child: Column(
                 children: [
                   Row(
                     children: [
                       Expanded(
-                        child:
-                            HeartRateDisplay(
-                          heartRateData:
-                              heartRateData,
-                        ),
+                        child: HeartRateDisplay(heartRateData: heartRateData),
                       ),
 
-                      const SizedBox(
-                        width: 8,
-                      ),
+                      const SizedBox(width: 8),
 
-                      Expanded(
-                        child: SpO2Display(
-                          spo2Data:
-                              spo2Data,
-                        ),
-                      ),
+                      Expanded(child: SpO2Display(spo2Data: spo2Data)),
                     ],
                   ),
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
 
-                  StepsDisplay(
-                    stepsData:
-                        stepsData,
-                  ),
+                  StepsDisplay(stepsData: stepsData),
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
 
-                  SleepDisplay(
-                    sleepData:
-                        sleepData,
-                  ),
+                  SleepDisplay(sleepData: sleepData),
 
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
 
                   ClearPendingQueueButton(
-                    uploadQueueService:
-                        uploadQueueService,
+                    uploadQueueService: uploadQueueService,
                   ),
                 ],
               ),
@@ -329,12 +248,7 @@ class _ElderlyInterfaceState
 
             // REMINDERS TAB
             const Center(
-              child: Text(
-                'Reminders',
-                style: TextStyle(
-                  fontSize: 20,
-                ),
-              ),
+              child: Text('Reminders', style: TextStyle(fontSize: 20)),
             ),
           ],
         ),

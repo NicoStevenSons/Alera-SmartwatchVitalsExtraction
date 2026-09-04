@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../design_system/alera_colors.dart';
+import '../../../../../design_system/widgets/alera_button.dart';
 import '../../../domain/models/care_recipient.dart';
 
 class HomePatientHeader extends StatelessWidget {
@@ -19,14 +20,11 @@ class HomePatientHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFFB590F0),
-          Color(0xFFD7C3FA),
-        ],
-      ),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFB590F0), Color(0xFFD7C3FA)],
+        ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),
       child: Padding(
@@ -60,7 +58,8 @@ class HomePatientHeader extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Last Check-in: ${_time(careRecipient.healthSnapshot.lastCheckIn)}',
+                            'Last Check-in: '
+                            '${_time(careRecipient.healthSnapshot.lastCheckIn)}',
                             style: const TextStyle(
                               color: AleraColors.textSecondary,
                               fontSize: 11,
@@ -77,18 +76,24 @@ class HomePatientHeader extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _HeaderButton(
-                    icon: Icons.phone,
+                  child: AleraButton(
                     label: 'Call',
+                    icon: Icons.phone,
                     onPressed: onCall,
+                    variant: AleraButtonVariant.primary,
+                    expand: true,
+                    height: 40,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _HeaderButton(
-                    icon: Icons.message,
+                  child: AleraButton(
                     label: 'Message',
+                    icon: Icons.message,
                     onPressed: onMessage,
+                    variant: AleraButtonVariant.primary,
+                    expand: true,
+                    height: 40,
                   ),
                 ),
               ],
@@ -100,38 +105,10 @@ class HomePatientHeader extends StatelessWidget {
   }
 
   String _time(DateTime value) {
-    final int hour = value.hour > 12 ? value.hour - 12 : value.hour;
+    final int hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
+
     return '$hour:${value.minute.toString().padLeft(2, '0')} '
         '${value.hour >= 12 ? 'PM' : 'AM'}';
-  }
-}
-
-class _HeaderButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const _HeaderButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: FilledButton.icon(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFFA77CE7),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        icon: Icon(icon, size: 14),
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-      ),
-    );
   }
 }
 
@@ -149,8 +126,15 @@ class _InitialAvatar extends StatelessWidget {
         .take(2)
         .map((word) => word.characters.first.toUpperCase())
         .join();
+
     final int seed = name.codeUnits.fold(0, (sum, value) => sum + value);
-    const colors = [Color(0xFF8165C7), Color(0xFF4D91A8), Color(0xFFB36B8D)];
+
+    const List<Color> colors = [
+      Color(0xFF8165C7),
+      Color(0xFF4D91A8),
+      Color(0xFFB36B8D),
+    ];
+
     return CircleAvatar(
       radius: 25,
       backgroundColor: colors[seed % colors.length],

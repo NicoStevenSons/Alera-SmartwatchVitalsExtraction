@@ -6,53 +6,42 @@ import 'fifo_upload_service.dart';
 import 'health_event_api_service.dart';
 import 'upload_queue_service.dart';
 
-const String aleraBackgroundSyncTask =
-    'aleraBackgroundSyncTask';
+const String aleraBackgroundSyncTask = 'aleraBackgroundSyncTask';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
-  Workmanager().executeTask(
-    (String task, Map<String, dynamic>? inputData) async {
-      debugPrint(
-        'Alera background task started: $task',
+  Workmanager().executeTask((
+    String task,
+    Map<String, dynamic>? inputData,
+  ) async {
+    debugPrint('Alera background task started: $task');
+
+    if (task != aleraBackgroundSyncTask) {
+      return true;
+    }
+
+    try {
+      final UploadQueueService uploadQueueService = UploadQueueService();
+
+      final HealthEventApiService healthEventApiService = HealthEventApiService(
+        baseUrl: AppConfig.backendBaseUrl,
+        patientId: AppConfig.testPatientId,
       );
 
-      if (task != aleraBackgroundSyncTask) {
-        return true;
-      }
+      final FifoUploadService fifoUploadService = FifoUploadService(
+        uploadQueueService: uploadQueueService,
+        healthEventApiService: healthEventApiService,
+      );
 
-      try {
-        final UploadQueueService uploadQueueService =
-            UploadQueueService();
+      await fifoUploadService.processQueue();
 
-        final HealthEventApiService
-            healthEventApiService =
-            HealthEventApiService(
-          baseUrl: AppConfig.backendBaseUrl,
-          patientId: AppConfig.testPatientId,
-        );
+      debugPrint('Alera background queue sync finished.');
 
-        final FifoUploadService fifoUploadService =
-            FifoUploadService(
-          uploadQueueService: uploadQueueService,
-          healthEventApiService:
-              healthEventApiService,
-        );
+      return true;
+    } catch (error) {
+      debugPrint('Alera background sync error: $error');
 
-        await fifoUploadService.processQueue();
-
-        debugPrint(
-          'Alera background queue sync finished.',
-        );
-
-        return true;
-      } catch (error) {
-        debugPrint(
-          'Alera background sync error: $error',
-        );
-
-        return false;
-      }
-    },
-  );
+      return false;
+    }
+  });
 }

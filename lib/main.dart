@@ -7,19 +7,13 @@ import 'interfaces/interface_selection.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Workmanager().initialize(
-    callbackDispatcher,
-  );
+  await Workmanager().initialize(callbackDispatcher);
 
   await Workmanager().registerPeriodicTask(
     'alera-periodic-health-upload',
     aleraBackgroundSyncTask,
-    frequency: const Duration(
-      minutes: 15,
-    ),
-    constraints: Constraints(
-      networkType: NetworkType.connected,
-    ),
+    frequency: const Duration(minutes: 15),
+    constraints: Constraints(networkType: NetworkType.connected),
   );
 
   runApp(const AleraApp());

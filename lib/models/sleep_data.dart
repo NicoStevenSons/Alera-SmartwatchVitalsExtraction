@@ -9,9 +9,7 @@ class SleepStageData {
     required this.endTime,
   });
 
-  factory SleepStageData.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory SleepStageData.fromJson(Map<String, dynamic> json) {
     return SleepStageData(
       stage: json['stage'] as int,
       startTime: json['start_time'] as String,
@@ -35,11 +33,8 @@ class SleepSessionData {
     required this.stages,
   });
 
-  factory SleepSessionData.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final List<dynamic> rawStages =
-        json['stages'] as List<dynamic>? ?? [];
+  factory SleepSessionData.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> rawStages = json['stages'] as List<dynamic>? ?? [];
 
     return SleepSessionData(
       startTime: json['start_time'] as String,
@@ -48,9 +43,8 @@ class SleepSessionData {
       notes: json['notes'] as String?,
       stages: rawStages
           .map(
-            (stage) => SleepStageData.fromJson(
-              Map<String, dynamic>.from(stage),
-            ),
+            (stage) =>
+                SleepStageData.fromJson(Map<String, dynamic>.from(stage)),
           )
           .toList(),
     );
@@ -60,29 +54,20 @@ class SleepSessionData {
 class SleepData {
   final List<SleepSessionData> sessions;
 
-  const SleepData({
-    required this.sessions,
-  });
+  const SleepData({required this.sessions});
 
   factory SleepData.empty() {
-    return const SleepData(
-      sessions: [],
-    );
+    return const SleepData(sessions: []);
   }
 
-  factory SleepData.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final List<dynamic> rawSessions =
-        json['sessions'] as List<dynamic>? ?? [];
+  factory SleepData.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> rawSessions = json['sessions'] as List<dynamic>? ?? [];
 
     return SleepData(
       sessions: rawSessions
           .map(
             (session) =>
-                SleepSessionData.fromJson(
-              Map<String, dynamic>.from(session),
-            ),
+                SleepSessionData.fromJson(Map<String, dynamic>.from(session)),
           )
           .toList(),
     );

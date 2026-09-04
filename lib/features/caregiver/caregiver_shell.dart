@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../design_system/alera_spacing.dart';
 import '../../design_system/alera_theme.dart';
+
 import '../../design_system/alera_typography.dart';
 import 'domain/repositories/caregiver_repository.dart';
 import 'domain/models/care_recipient.dart';
@@ -78,10 +80,27 @@ class _CaregiverShellState extends State<CaregiverShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AleraTheme.caregiver(Theme.of(context)),
-      child: Builder(
-        builder: (context) {
+    final SystemUiOverlayStyle systemBarStyle = _selectedIndex == 0
+    ? const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFB590F0),
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemStatusBarContrastEnforced: false,
+      )
+    : SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Theme.of(context).colorScheme.surface,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemStatusBarContrastEnforced: false,
+      );
+
+      
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemBarStyle,
+      child: Theme(
+        data: AleraTheme.caregiver(Theme.of(context)),
+        child: Builder(
+          builder: (context) {
           return Scaffold(
             body: SafeArea(
               bottom: false,
@@ -180,6 +199,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
           );
         },
       ),
+    ),
     );
   }
 }

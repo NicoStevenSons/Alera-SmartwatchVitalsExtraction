@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_typography.dart';
 import '../../../../../design_system/widgets/alera_section_card.dart';
+import '../../../../../design_system/widgets/alera_button.dart';
 import '../../../domain/models/caregiver_reminder.dart';
 
 class HomeRemindersPreview extends StatelessWidget {
@@ -119,18 +120,12 @@ class _Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return AleraButton(
+      label: label,
+      onPressed: onTap,
+      variant: AleraButtonVariant.secondary,
+      expand: false,
       height: 34,
-      child: FilledButton.tonal(
-        onPressed: onTap,
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          foregroundColor: AleraColors.textSecondary,
-          backgroundColor: AleraColors.primarySoft,
-          textStyle: const TextStyle(fontSize: 11),
-        ),
-        child: Text(label),
-      ),
     );
   }
 }

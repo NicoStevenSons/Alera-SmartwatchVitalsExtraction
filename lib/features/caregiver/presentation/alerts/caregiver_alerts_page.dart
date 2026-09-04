@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_typography.dart';
+import '../../../../design_system/widgets/alera_pill.dart';
 import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
+import '../widgets/caregiver_alert_card.dart';
 
 enum AlertFilter { warning, critical, heartRate, spo2, unacknowledged }
 
@@ -26,6 +28,15 @@ class CaregiverAlertsPage extends StatefulWidget {
 
 class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   final Set<AlertFilter> _filters = <AlertFilter>{};
+  final Set<String> _expandedAlertIds = <String>{};
+
+  void _toggleExpanded(String alertId) {
+    setState(() {
+      if (!_expandedAlertIds.add(alertId)) {
+        _expandedAlertIds.remove(alertId);
+      }
+    });
+  }
 
   void _toggleFilter(AlertFilter filter) {
     setState(() {
@@ -85,6 +96,14 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
     _showDetailMessage(context);
   }
 
+  void _showMarkAsSeen(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Mark as Seen is mock-only for now.')),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<CaregiverAlert> filtered = widget.alerts.where(_matches).toList()
@@ -115,11 +134,13 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
             ],
           ),
         ),
+        // Change height from 58 to 66 (or higher depending on added padding)
         SizedBox(
-          height: 58,
+          height: 66,
           child: ListView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            // Add top padding here (e.g., top: 16)
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             children: [
               _FilterChip(
                 label: 'Warning',
@@ -176,12 +197,23 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
                             .map(
                               (alert) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
-                                child: AlertListCard(
+                                child: CaregiverAlertCard(
                                   alert: alert,
-                                  recipient: _recipientFor(
+                                  patientName: _recipientFor(
                                     alert.careRecipientId,
+                                  )?.name,
+                                  showPatientName: true,
+                                  unread:
+                                      alert.status ==
+                                      CaregiverAlertStatus.active,
+                                  expanded: _expandedAlertIds.contains(
+                                    alert.id,
                                   ),
-                                  onTap: () => _handleAlertTap(context, alert),
+                                  onToggleExpanded: () =>
+                                      _toggleExpanded(alert.id),
+                                  onViewMore: () =>
+                                      _handleAlertTap(context, alert),
+                                  onMarkAsSeen: () => _showMarkAsSeen(context),
                                 ),
                               ),
                             )
@@ -196,6 +228,9 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
                     : _GroupedHistory(
                         alerts: history,
                         recipientFor: _recipientFor,
+                        expandedAlertIds: _expandedAlertIds,
+                        onToggleExpanded: _toggleExpanded,
+                        onMarkAsSeen: () => _showMarkAsSeen(context),
                         onAlertTap: (alert) => _handleAlertTap(context, alert),
                       ),
               ),
@@ -226,19 +261,12 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: ActionChip(
-        onPressed: () => onTap(filter),
-        backgroundColor: selected ? AleraColors.primarySoft : Colors.white,
-        side: BorderSide(
-          color: selected ? AleraColors.primary : Colors.transparent,
-        ),
-        avatar: AleraSvgIcon(assetPath: assetPath, width: 24, height: 24),
-        label: Text(label),
-        labelStyle: TextStyle(
-          color: selected ? AleraColors.primary : AleraColors.textSecondary,
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-        ),
+      child: AleraPill(
+        label: label,
+        leading: AleraSvgIcon(assetPath: assetPath, width: 20, height: 20),
+        selected: selected,
+        variant: AleraPillVariant.filter,
+        onTap: () => onTap(filter),
       ),
     );
   }
@@ -324,11 +352,17 @@ class _GroupedHistory extends StatelessWidget {
   final List<CaregiverAlert> alerts;
   final CareRecipient? Function(String id) recipientFor;
   final ValueChanged<CaregiverAlert> onAlertTap;
+  final Set<String> expandedAlertIds;
+  final ValueChanged<String> onToggleExpanded;
+  final VoidCallback onMarkAsSeen;
 
   const _GroupedHistory({
     required this.alerts,
     required this.recipientFor,
     required this.onAlertTap,
+    required this.expandedAlertIds,
+    required this.onToggleExpanded,
+    required this.onMarkAsSeen,
   });
 
   @override
@@ -360,10 +394,15 @@ class _GroupedHistory extends StatelessWidget {
             ),
             const SizedBox(height: 7),
             for (final CaregiverAlert alert in groups[label]!) ...[
-              AlertListCard(
+              CaregiverAlertCard(
                 alert: alert,
-                recipient: recipientFor(alert.careRecipientId),
-                onTap: () => onAlertTap(alert),
+                patientName: recipientFor(alert.careRecipientId)?.name,
+                showPatientName: true,
+                unread: alert.status == CaregiverAlertStatus.active,
+                expanded: expandedAlertIds.contains(alert.id),
+                onToggleExpanded: () => onToggleExpanded(alert.id),
+                onViewMore: () => onAlertTap(alert),
+                onMarkAsSeen: onMarkAsSeen,
               ),
               const SizedBox(height: 8),
             ],

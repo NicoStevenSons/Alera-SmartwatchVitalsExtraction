@@ -15,7 +15,12 @@ void main() {
 
     await tester.tap(find.text('Alerts'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('High Heart Rate').first);
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    final Finder viewMore = find.text('View Details').first;
+    await tester.tap(viewMore);
     await tester.pumpAndSettle();
 
     expect(find.text('Alert Details'), findsOneWidget);
@@ -45,7 +50,12 @@ void main() {
     );
     await tester.tap(find.text('Alerts'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('High Heart Rate').first);
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    final Finder viewMore = find.text('View Details').first;
+    await tester.tap(viewMore);
     await tester.pumpAndSettle();
 
     await tester.drag(find.byType(ListView), const Offset(0, -700));

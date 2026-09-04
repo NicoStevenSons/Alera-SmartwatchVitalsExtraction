@@ -8,35 +8,23 @@ class HealthEventApiService {
   final String baseUrl;
   final String patientId;
 
-  const HealthEventApiService({
-    required this.baseUrl,
-    required this.patientId,
-  });
+  const HealthEventApiService({required this.baseUrl, required this.patientId});
 
-  Future<http.Response> sendHealthEvent(
-    Map<String, dynamic> payload,
-  ) async {
-    final Uri endpoint = Uri.parse(
-      '$baseUrl/api/v1/health-events',
-    );
+  Future<http.Response> sendHealthEvent(Map<String, dynamic> payload) async {
+    final Uri endpoint = Uri.parse('$baseUrl/api/v1/health-events');
 
     debugPrint(
       'Sending backend payload: '
       '${jsonEncode(payload)}',
     );
 
-    final http.Response response =
-        await http
-            .post(
-              endpoint,
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: jsonEncode(payload),
-            )
-            .timeout(
-              const Duration(seconds: 15),
-            );
+    final http.Response response = await http
+        .post(
+          endpoint,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 15));
 
     debugPrint(
       'Backend response: '

@@ -4,18 +4,14 @@ import 'elderly_interface.dart';
 import 'caregiver_interface.dart';
 
 class InterfaceSelection extends StatelessWidget {
-  const InterfaceSelection({
-    super.key,
-  });
+  const InterfaceSelection({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.purple,
-        title: const Text(
-          'Alera',
-        ),
+        title: const Text('Alera'),
       ),
 
       body: Center(
@@ -23,21 +19,15 @@ class InterfaceSelection extends StatelessWidget {
           padding: const EdgeInsets.all(24),
 
           child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
 
             children: [
               const Text(
                 'Choose Interface',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(
-                height: 32,
-              ),
+              const SizedBox(height: 32),
 
               SizedBox(
                 width: double.infinity,
@@ -46,20 +36,15 @@ class InterfaceSelection extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const ElderlyInterface(),
+                        builder: (context) => const ElderlyInterface(),
                       ),
                     );
                   },
-                  child: const Text(
-                    'Elderly Interface',
-                  ),
+                  child: const Text('Elderly Interface'),
                 ),
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
@@ -68,14 +53,11 @@ class InterfaceSelection extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const CaregiverInterface(),
+                        builder: (context) => const CaregiverInterface(),
                       ),
                     );
                   },
-                  child: const Text(
-                    'Caregiver Interface',
-                  ),
+                  child: const Text('Caregiver Interface'),
                 ),
               ),
             ],

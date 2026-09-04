@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_spacing.dart';
+import '../../../../design_system/alera_typography.dart';
+import '../../../../design_system/widgets/alera_card.dart';
 import '../../domain/models/care_recipient.dart';
 import 'widgets/care_recipient_card.dart';
 
@@ -35,15 +37,10 @@ class CaregiverPeoplePage extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'People',
-                  style: TextStyle(
-                    color: AleraColors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    height: 1.1,
-                  ),
+                  style: AleraTypography.pageTitle.copyWith(fontSize: 24),
                 ),
               ),
               IconButton(
@@ -110,22 +107,22 @@ class _AddPatientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 40,
-      child: FilledButton.tonalIcon(
-        style: FilledButton.styleFrom(
-          foregroundColor: AleraColors.textSecondary,
-          backgroundColor: AleraColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AleraSpacing.cardRadius),
-          ),
-        ),
-        onPressed: onPressed,
-        icon: const Icon(Icons.add, size: 24),
-        label: const Text(
-          'Add Patient',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+    return AleraCard(
+      padding: EdgeInsets.zero,
+      onTap: onPressed,
+      child: SizedBox(
+        width: double.infinity,
+        height: 40,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add, size: 24, color: AleraColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              'Add Patient',
+              style: AleraTypography.label.copyWith(fontSize: 15),
+            ),
+          ],
         ),
       ),
     );

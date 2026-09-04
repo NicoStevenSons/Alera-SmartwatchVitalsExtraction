@@ -2,10 +2,9 @@ class AppConfig {
   const AppConfig._();
 
   static const String backendBaseUrl =
-      'http://192.168.1.12:8000';
+      'https://alera-backend-i1ui.onrender.com';
 
-  static const String testPatientId =
-      'a076ecdb-ae38-4f84-b490-e714977027ee';
+  static const String testPatientId = 'a076ecdb-ae38-4f84-b490-e714977027ee';
 
   static const bool enableBackend = true;
 }

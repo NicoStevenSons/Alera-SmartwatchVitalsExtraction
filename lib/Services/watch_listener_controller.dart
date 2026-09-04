@@ -37,46 +37,36 @@ class WatchListenerController {
   });
 
   void start() {
-  watchPayloadService.startListening(
-    
-    onHeartRateReceived: _handleHeartRate,
+    watchPayloadService.startListening(
+      onHeartRateReceived: _handleHeartRate,
 
-    onSpO2Received: _handleSpO2,
+      onSpO2Received: _handleSpO2,
 
-    onStepsReceived: (StepsData data) {
-      onStepsUpdated(data);
-    },
+      onStepsReceived: (StepsData data) {
+        onStepsUpdated(data);
+      },
 
-    onDeviceStatusReceived: (DeviceStatusData data) {
-      onDeviceStatusUpdated(data);
-    },
+      onDeviceStatusReceived: (DeviceStatusData data) {
+        onDeviceStatusUpdated(data);
+      },
 
-    onSleepReceived: (SleepData data) {
-      onSleepUpdated(data);
-    },
+      onSleepReceived: (SleepData data) {
+        onSleepUpdated(data);
+      },
 
-    onError: (Object error) {
-      debugPrint(
-        'Payload listener error: $error',
-      );
-    },
-  );
-}
+      onError: (Object error) {
+        debugPrint('Payload listener error: $error');
+      },
+    );
+  }
 
-  Future<void> _handleHeartRate(
-    HeartRateData data,
-  ) async {
+  Future<void> _handleHeartRate(HeartRateData data) async {
     onHeartRateUpdated(data);
 
     final int? bpm = data.bpm;
     final String? measuredAt = data.measuredAt;
 
-    if (
-      bpm == null ||
-      bpm <= 0 ||
-      measuredAt == null ||
-      data.status != 1
-    ) {
+    if (bpm == null || bpm <= 0 || measuredAt == null || data.status != 1) {
       debugPrint(
         'Heart-rate reading not queued: '
         'invalid or still measuring.',
@@ -84,46 +74,36 @@ class WatchListenerController {
       return;
     }
 
-    final Map<String, dynamic> backendPayload =
-        HealthEventMapper.mapHeartRate(
-      patientId:
-          healthEventApiService.patientId,
+    final Map<String, dynamic> backendPayload = HealthEventMapper.mapHeartRate(
+      patientId: healthEventApiService.patientId,
       heartRateBpm: bpm,
       recordedAt: measuredAt,
       rawPayload: data.toJson(),
     );
 
-    final int localId =
-        await uploadQueueService.enqueue(
+    final int localId = await uploadQueueService.enqueue(
       metricType: 'HEART_RATE',
       payload: backendPayload,
     );
 
-    debugPrint(
-      'HR saved locally. Queue ID: $localId',
-    );
+    debugPrint('HR saved locally. Queue ID: $localId');
 
     if (AppConfig.enableBackend) {
       await fifoUploadService.processQueue();
     }
   }
 
-  Future<void> _handleSpO2(
-    SpO2Data data,
-  ) async {
+  Future<void> _handleSpO2(SpO2Data data) async {
     onSpO2Updated(data);
 
     final double? percent = data.percent;
     final String? measuredAt = data.measuredAt;
 
-    if (
-      percent == null ||
-      percent <= 0 ||
-      measuredAt == null ||
-      data.status != 2
-    ) {
-      final int localId =
-          await uploadQueueService.enqueue(
+    if (percent == null ||
+        percent <= 0 ||
+        measuredAt == null ||
+        data.status != 2) {
+      final int localId = await uploadQueueService.enqueue(
         metricType: 'SPO2',
         payload: data.toJson(),
         queueStatus: 'FAILED_MEASUREMENT',
@@ -141,17 +121,14 @@ class WatchListenerController {
       return;
     }
 
-    final Map<String, dynamic> backendPayload =
-        HealthEventMapper.mapSpO2(
-      patientId:
-          healthEventApiService.patientId,
+    final Map<String, dynamic> backendPayload = HealthEventMapper.mapSpO2(
+      patientId: healthEventApiService.patientId,
       spo2Percent: percent,
       recordedAt: measuredAt,
       rawPayload: data.toJson(),
     );
 
-    final int localId =
-        await uploadQueueService.enqueue(
+    final int localId = await uploadQueueService.enqueue(
       metricType: 'SPO2',
       payload: backendPayload,
     );
