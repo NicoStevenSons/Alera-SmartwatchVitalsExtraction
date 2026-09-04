@@ -6,6 +6,7 @@ import '../../../../design_system/widgets/alera_pill.dart';
 import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
+import '../../data/api/caregiver_alert_api_data_source.dart';
 import '../widgets/caregiver_alert_card.dart';
 
 enum AlertFilter { warning, critical, heartRate, spo2, unacknowledged }
@@ -14,12 +15,14 @@ class CaregiverAlertsPage extends StatefulWidget {
   final List<CaregiverAlert> alerts;
   final List<CareRecipient> careRecipients;
   final ValueChanged<CaregiverAlert>? onAlertTap;
+  final CaregiverAlertDataSource? alertDataSource;
 
   const CaregiverAlertsPage({
     super.key,
     required this.alerts,
     required this.careRecipients,
     this.onAlertTap,
+    this.alertDataSource,
   });
 
   @override
@@ -29,6 +32,43 @@ class CaregiverAlertsPage extends StatefulWidget {
 class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   final Set<AlertFilter> _filters = <AlertFilter>{};
   final Set<String> _expandedAlertIds = <String>{};
+  late final CaregiverAlertDataSource _alertDataSource;
+  late List<CaregiverAlert> _displayedAlerts;
+  bool _loadFailed = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _alertDataSource = widget.alertDataSource ?? CaregiverAlertApiDataSource();
+    _displayedAlerts = widget.alerts;
+    _loadAlerts();
+  }
+
+  Future<void> _loadAlerts() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _loadFailed = false;
+    });
+    try {
+      final List<CaregiverAlert> liveAlerts = await _alertDataSource
+          .fetchAlerts();
+      if (!mounted) return;
+      setState(() {
+        _displayedAlerts = liveAlerts;
+        _loadFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _displayedAlerts = widget.alerts;
+        _loadFailed = true;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _toggleExpanded(String alertId) {
     setState(() {
@@ -106,8 +146,9 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<CaregiverAlert> filtered = widget.alerts.where(_matches).toList()
-      ..sort((a, b) => b.detectedAt.compareTo(a.detectedAt));
+    final List<CaregiverAlert> filtered =
+        _displayedAlerts.where(_matches).toList()
+          ..sort((a, b) => b.detectedAt.compareTo(a.detectedAt));
     final List<CaregiverAlert> active = filtered
         .where((alert) => alert.status == CaregiverAlertStatus.active)
         .toList();
@@ -183,58 +224,87 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
             ],
           ),
         ),
+        if (_loadFailed)
+          Material(
+            color: const Color(0xFFFFF4E5),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Live alerts unavailable. Showing fallback alerts.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _isLoading ? null : _loadAlerts,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Expanded(
-          child: ListView(
-            key: const PageStorageKey<String>('caregiver-alerts-list'),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            children: [
-              _SectionCard(
-                title: 'Active Alerts',
-                child: active.isEmpty
-                    ? const _EmptyActiveAlerts()
-                    : Column(
-                        children: active
-                            .map(
-                              (alert) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: CaregiverAlertCard(
-                                  alert: alert,
-                                  patientName: _recipientFor(
-                                    alert.careRecipientId,
-                                  )?.name,
-                                  showPatientName: true,
-                                  unread:
-                                      alert.status ==
-                                      CaregiverAlertStatus.active,
-                                  expanded: _expandedAlertIds.contains(
-                                    alert.id,
+          child: RefreshIndicator(
+            onRefresh: _loadAlerts,
+            child: ListView(
+              key: const PageStorageKey<String>('caregiver-alerts-list'),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              children: [
+                _SectionCard(
+                  title: 'Active Alerts',
+                  child: active.isEmpty
+                      ? const _EmptyActiveAlerts()
+                      : Column(
+                          children: active
+                              .map(
+                                (alert) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: CaregiverAlertCard(
+                                    alert: alert,
+                                    patientName:
+                                        alert.patientDisplayName ??
+                                        _recipientFor(
+                                          alert.careRecipientId,
+                                        )?.name,
+                                    showPatientName: true,
+                                    unread:
+                                        alert.status ==
+                                        CaregiverAlertStatus.active,
+                                    expanded: _expandedAlertIds.contains(
+                                      alert.id,
+                                    ),
+                                    onToggleExpanded: () =>
+                                        _toggleExpanded(alert.id),
+                                    onViewMore: () =>
+                                        _handleAlertTap(context, alert),
+                                    onMarkAsSeen: () =>
+                                        _showMarkAsSeen(context),
                                   ),
-                                  onToggleExpanded: () =>
-                                      _toggleExpanded(alert.id),
-                                  onViewMore: () =>
-                                      _handleAlertTap(context, alert),
-                                  onMarkAsSeen: () => _showMarkAsSeen(context),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-              ),
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: 'History',
-                child: history.isEmpty
-                    ? const _EmptyHistory()
-                    : _GroupedHistory(
-                        alerts: history,
-                        recipientFor: _recipientFor,
-                        expandedAlertIds: _expandedAlertIds,
-                        onToggleExpanded: _toggleExpanded,
-                        onMarkAsSeen: () => _showMarkAsSeen(context),
-                        onAlertTap: (alert) => _handleAlertTap(context, alert),
-                      ),
-              ),
-            ],
+                              )
+                              .toList(),
+                        ),
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: 'History',
+                  child: history.isEmpty
+                      ? const _EmptyHistory()
+                      : _GroupedHistory(
+                          alerts: history,
+                          recipientFor: _recipientFor,
+                          expandedAlertIds: _expandedAlertIds,
+                          onToggleExpanded: _toggleExpanded,
+                          onMarkAsSeen: () => _showMarkAsSeen(context),
+                          onAlertTap: (alert) =>
+                              _handleAlertTap(context, alert),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -396,7 +466,9 @@ class _GroupedHistory extends StatelessWidget {
             for (final CaregiverAlert alert in groups[label]!) ...[
               CaregiverAlertCard(
                 alert: alert,
-                patientName: recipientFor(alert.careRecipientId)?.name,
+                patientName:
+                    alert.patientDisplayName ??
+                    recipientFor(alert.careRecipientId)?.name,
                 showPatientName: true,
                 unread: alert.status == CaregiverAlertStatus.active,
                 expanded: expandedAlertIds.contains(alert.id),

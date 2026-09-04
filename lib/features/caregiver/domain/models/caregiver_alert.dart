@@ -19,6 +19,7 @@ class AlertTimelineEntry {
 class CaregiverAlert {
   final String id;
   final String careRecipientId;
+  final String? patientDisplayName;
   final String title;
   final String description;
   final CaregiverAlertSeverity severity;
@@ -35,6 +36,7 @@ class CaregiverAlert {
   const CaregiverAlert({
     required this.id,
     required this.careRecipientId,
+    this.patientDisplayName,
     required this.title,
     required this.description,
     required this.severity,

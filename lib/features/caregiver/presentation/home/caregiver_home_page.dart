@@ -17,6 +17,7 @@ class CaregiverHomePage extends StatelessWidget {
   final List<CaregiverReminder> reminders;
   final VoidCallback onViewAllAlerts;
   final VoidCallback onViewAllReminders;
+  final ValueChanged<CaregiverAlert> onAlertTap;
 
   const CaregiverHomePage({
     super.key,
@@ -25,6 +26,7 @@ class CaregiverHomePage extends StatelessWidget {
     required this.reminders,
     required this.onViewAllAlerts,
     required this.onViewAllReminders,
+    required this.onAlertTap,
   });
 
   void _mock(BuildContext context, String action) {
@@ -76,7 +78,7 @@ class CaregiverHomePage extends StatelessWidget {
               HomeAlertsPreview(
                 alerts: alerts,
                 onViewAll: onViewAllAlerts,
-                onAlertTap: onViewAllAlerts,
+                onAlertTap: onAlertTap,
               ),
               const SizedBox(height: 12),
               HomeInsightsCard(snapshot: careRecipient.healthSnapshot),

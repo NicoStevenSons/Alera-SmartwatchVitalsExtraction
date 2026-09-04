@@ -21,8 +21,7 @@ class CareRecipientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isStable = careRecipient.status == CareStatus.stable;
-    final List<MonitoringDevice> devices =
-        careRecipient.healthSnapshot.devices;
+    final List<MonitoringDevice> devices = careRecipient.healthSnapshot.devices;
 
     return AleraCard(
       onTap: onTap,

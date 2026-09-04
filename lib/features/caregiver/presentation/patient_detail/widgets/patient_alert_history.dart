@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../design_system/alera_typography.dart';
-import '../../../../../design_system/widgets/alera_card.dart';
+import '../../../../../design_system/widgets/alera_section_card.dart';
 import '../../../domain/models/caregiver_alert.dart';
 import '../../widgets/caregiver_alert_card.dart';
 
 class PatientAlertHistory extends StatefulWidget {
   final List<CaregiverAlert> alerts;
   final VoidCallback onViewAll;
-  final VoidCallback onAlertTap;
+  final ValueChanged<CaregiverAlert> onAlertTap;
   final ValueChanged<CaregiverAlert>? onMarkAsSeen;
 
   const PatientAlertHistory({
@@ -34,16 +33,13 @@ class _PatientAlertHistoryState extends State<PatientAlertHistory> {
 
   @override
   Widget build(BuildContext context) {
-    return AleraCard(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+    return AleraSectionCard(
+      title: 'Alert History',
+      actionLabel: 'View All Alerts',
+      onActionPressed: widget.onViewAll,
+      contentSpacing: 7,
       child: Column(
         children: [
-          _SectionHeader(
-            title: 'Alert History',
-            action: 'View All Alerts',
-            onAction: widget.onViewAll,
-          ),
-          const SizedBox(height: 7),
           if (widget.alerts.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -55,7 +51,7 @@ class _PatientAlertHistoryState extends State<PatientAlertHistory> {
                 alert: alert,
                 expanded: _expandedAlertIds.contains(alert.id),
                 onToggleExpanded: () => _toggle(alert.id),
-                onViewMore: widget.onAlertTap,
+                onViewMore: () => widget.onAlertTap(alert),
                 onMarkAsSeen: widget.onMarkAsSeen == null
                     ? null
                     : () => widget.onMarkAsSeen!(alert),
@@ -65,35 +61,6 @@ class _PatientAlertHistoryState extends State<PatientAlertHistory> {
             ],
         ],
       ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String action;
-  final VoidCallback onAction;
-
-  const _SectionHeader({
-    required this.title,
-    required this.action,
-    required this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text(title, style: AleraTypography.sectionTitle)),
-        TextButton(
-          onPressed: onAction,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            minimumSize: const Size(44, 36),
-          ),
-          child: Text(action, style: const TextStyle(fontSize: 11)),
-        ),
-      ],
     );
   }
 }

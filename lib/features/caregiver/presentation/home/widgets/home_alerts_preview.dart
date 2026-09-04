@@ -7,7 +7,7 @@ import '../../widgets/caregiver_alert_card.dart';
 class HomeAlertsPreview extends StatefulWidget {
   final List<CaregiverAlert> alerts;
   final VoidCallback onViewAll;
-  final VoidCallback onAlertTap;
+  final ValueChanged<CaregiverAlert> onAlertTap;
   final ValueChanged<CaregiverAlert>? onMarkAsSeen;
 
   const HomeAlertsPreview({
@@ -52,7 +52,7 @@ class _HomeAlertsPreviewState extends State<HomeAlertsPreview> {
                 alert: visibleAlerts[index],
                 expanded: _expandedAlertIds.contains(visibleAlerts[index].id),
                 onToggleExpanded: () => _toggle(visibleAlerts[index].id),
-                onViewMore: widget.onAlertTap,
+                onViewMore: () => widget.onAlertTap(visibleAlerts[index]),
                 onMarkAsSeen: widget.onMarkAsSeen == null
                     ? null
                     : () => widget.onMarkAsSeen!(visibleAlerts[index]),
