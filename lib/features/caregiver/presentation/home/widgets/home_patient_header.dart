@@ -23,7 +23,10 @@ class HomePatientHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFB590F0), Color(0xFFD7C3FA)],
+          colors: [
+            Color(0xFFC3A7F5), // Top: Medium Soft Lavender
+            Color(0xFFE8E0FF), // Bottom: Light Pale Lavender
+          ],        
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),

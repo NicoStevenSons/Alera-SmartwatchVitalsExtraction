@@ -46,16 +46,25 @@ dev_dependencies:
     sdk: flutter
 
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.0
+
 
   flutter_lints: ^6.0.0
 
+flutter_native_splash:
+  color: "#ffffff"
+  android_12:
+    color: "#ffffff"   
 
 flutter_launcher_icons:
   android: true
-  ios: false
-  image_path: "assets/icon/alera_logo.png"
+  ios: true
 
+  image_path: "assets/icons/alera-logo-no-padding.png"
 
+  adaptive_icon_background: "#F5F5F5"
+  adaptive_icon_foreground: "assets/icons/alera-logo.png"
+  
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
