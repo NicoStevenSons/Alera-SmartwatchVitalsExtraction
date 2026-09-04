@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_typography.dart';
 import '../../../../design_system/widgets/alera_pill.dart';
+import '../../../../design_system/widgets/alera_refresh_indicator.dart';
 import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
@@ -34,6 +35,7 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   final Set<String> _expandedAlertIds = <String>{};
   late final CaregiverAlertDataSource _alertDataSource;
   late List<CaregiverAlert> _displayedAlerts;
+  bool _hasCompletedInitialLoad = false;
   bool _loadFailed = false;
   bool _isLoading = false;
 
@@ -41,7 +43,7 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   void initState() {
     super.initState();
     _alertDataSource = widget.alertDataSource ?? CaregiverAlertApiDataSource();
-    _displayedAlerts = widget.alerts;
+    _displayedAlerts = const [];
     _loadAlerts();
   }
 
@@ -49,7 +51,6 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
     if (_isLoading) return;
     setState(() {
       _isLoading = true;
-      _loadFailed = false;
     });
     try {
       final List<CaregiverAlert> liveAlerts = await _alertDataSource
@@ -57,17 +58,44 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
       if (!mounted) return;
       setState(() {
         _displayedAlerts = liveAlerts;
+        _hasCompletedInitialLoad = true;
         _loadFailed = false;
       });
+    } on CaregiverAlertsAuthFailure {
+      _showNoFallback();
+    } on CaregiverAlertsTimeoutFailure {
+      _showFallback();
+    } on CaregiverAlertsRequestFailure {
+      _showFallback();
+    } on CaregiverAlertsHttpFailure catch (error) {
+      if (error.statusCode >= 500) {
+        _showFallback();
+      } else {
+        _showNoFallback();
+      }
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _displayedAlerts = widget.alerts;
-        _loadFailed = true;
-      });
+      _showNoFallback();
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showNoFallback() {
+    if (!mounted) return;
+    setState(() {
+      _displayedAlerts = const [];
+      _hasCompletedInitialLoad = true;
+      _loadFailed = false;
+    });
+  }
+
+  void _showFallback() {
+    if (!mounted) return;
+    setState(() {
+      _displayedAlerts = widget.alerts;
+      _hasCompletedInitialLoad = true;
+      _loadFailed = true;
+    });
   }
 
   void _toggleExpanded(String alertId) {
@@ -246,68 +274,206 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
             ),
           ),
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadAlerts,
-            child: ListView(
-              key: const PageStorageKey<String>('caregiver-alerts-list'),
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: !_hasCompletedInitialLoad
+              ? const _AlertsLoadingSkeleton()
+              : AleraRefreshIndicator(
+                  onRefresh: _loadAlerts,
+                  backgroundColor: Colors
+                      .white, // Sets the circle bubble background to white
+                  child: ListView(
+                    key: const PageStorageKey<String>('caregiver-alerts-list'),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    children: [
+                      _SectionCard(
+                        title: 'Active Alerts',
+                        child: active.isEmpty
+                            ? const _EmptyActiveAlerts()
+                            : Column(
+                                children: active
+                                    .map(
+                                      (alert) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        child: CaregiverAlertCard(
+                                          alert: alert,
+                                          patientName:
+                                              alert.patientDisplayName ??
+                                              _recipientFor(
+                                                alert.careRecipientId,
+                                              )?.name,
+                                          showPatientName: true,
+                                          unread:
+                                              alert.status ==
+                                              CaregiverAlertStatus.active,
+                                          expanded: _expandedAlertIds.contains(
+                                            alert.id,
+                                          ),
+                                          onToggleExpanded: () =>
+                                              _toggleExpanded(alert.id),
+                                          onViewMore: () =>
+                                              _handleAlertTap(context, alert),
+                                          onMarkAsSeen: () =>
+                                              _showMarkAsSeen(context),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+                      _SectionCard(
+                        title: 'History',
+                        child: history.isEmpty
+                            ? const _EmptyHistory()
+                            : _GroupedHistory(
+                                alerts: history,
+                                recipientFor: _recipientFor,
+                                expandedAlertIds: _expandedAlertIds,
+                                onToggleExpanded: _toggleExpanded,
+                                onMarkAsSeen: () => _showMarkAsSeen(context),
+                                onAlertTap: (alert) =>
+                                    _handleAlertTap(context, alert),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlertsLoadingSkeleton extends StatelessWidget {
+  const _AlertsLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const Key('alerts-loading-skeleton'),
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      children: const [
+        _SkeletonSection(
+          title: 'Active Alerts',
+          children: [
+            _AlertCardSkeleton(),
+            SizedBox(height: 8),
+            _AlertCardSkeleton(),
+          ],
+        ),
+        SizedBox(height: 12),
+        _SkeletonSection(
+          title: 'History',
+          children: [_AlertCardSkeleton(compact: true)],
+        ),
+      ],
+    );
+  }
+}
+
+class _SkeletonSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _SkeletonSection({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D5E477C),
+            blurRadius: 12,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AleraTypography.sectionTitle),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _AlertCardSkeleton extends StatelessWidget {
+  final bool compact;
+
+  const _AlertCardSkeleton({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    const Color placeholder = Color(0xFFE5DCF5);
+    return Container(
+      height: compact ? 64 : 76,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A5E477C),
+            blurRadius: 7,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: placeholder,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionCard(
-                  title: 'Active Alerts',
-                  child: active.isEmpty
-                      ? const _EmptyActiveAlerts()
-                      : Column(
-                          children: active
-                              .map(
-                                (alert) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: CaregiverAlertCard(
-                                    alert: alert,
-                                    patientName:
-                                        alert.patientDisplayName ??
-                                        _recipientFor(
-                                          alert.careRecipientId,
-                                        )?.name,
-                                    showPatientName: true,
-                                    unread:
-                                        alert.status ==
-                                        CaregiverAlertStatus.active,
-                                    expanded: _expandedAlertIds.contains(
-                                      alert.id,
-                                    ),
-                                    onToggleExpanded: () =>
-                                        _toggleExpanded(alert.id),
-                                    onViewMore: () =>
-                                        _handleAlertTap(context, alert),
-                                    onMarkAsSeen: () =>
-                                        _showMarkAsSeen(context),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                ),
-                const SizedBox(height: 12),
-                _SectionCard(
-                  title: 'History',
-                  child: history.isEmpty
-                      ? const _EmptyHistory()
-                      : _GroupedHistory(
-                          alerts: history,
-                          recipientFor: _recipientFor,
-                          expandedAlertIds: _expandedAlertIds,
-                          onToggleExpanded: _toggleExpanded,
-                          onMarkAsSeen: () => _showMarkAsSeen(context),
-                          onAlertTap: (alert) =>
-                              _handleAlertTap(context, alert),
-                        ),
-                ),
+                _SkeletonBar(widthFactor: .72),
+                SizedBox(height: 8),
+                _SkeletonBar(widthFactor: .45, height: 9),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonBar extends StatelessWidget {
+  final double widthFactor;
+  final double height;
+
+  const _SkeletonBar({required this.widthFactor, this.height = 12});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5DCF5),
+          borderRadius: BorderRadius.circular(height / 2),
         ),
-      ],
+      ),
     );
   }
 }
@@ -411,9 +577,14 @@ class _EmptyHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 18),
-      child: Center(child: Text('No alerts match the selected filters.')),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Center(
+        child: Text(
+          'No alerts match the selected filters.',
+          style: AleraTypography.label,
+        ),
+      ),
     );
   }
 }

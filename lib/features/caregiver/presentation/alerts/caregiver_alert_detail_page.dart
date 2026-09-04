@@ -52,7 +52,11 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
         : spo2
         ? 'alera-figma-assets/assets/icons/mini_status/spo2.svg'
         : 'alera-figma-assets/assets/icons/mini_status/info.svg';
-    final String patientName = widget.careRecipient?.name ?? 'Unknown patient';
+    final String patientName =
+        alert.patientDisplayName ??
+        widget.careRecipient?.name ??
+        'Unknown patient';
+    final bool hasAdditionalContext = alert.description.trim().isNotEmpty;
 
     return Scaffold(
       body: SafeArea(
@@ -93,8 +97,10 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   _DetailsCard(alert: alert),
-                  const SizedBox(height: 12),
-                  _ContextCard(alert: alert),
+                  if (hasAdditionalContext) ...[
+                    const SizedBox(height: 12),
+                    _ContextCard(alert: alert),
+                  ],
                   if (widget.careRecipient != null) ...[
                     const SizedBox(height: 12),
                     PatientMonitoringDevicesCard(
@@ -248,11 +254,6 @@ class _SummaryCard extends StatelessWidget {
                     _dateTime(alert.detectedAt),
                     style: AleraTypography.body.copyWith(fontSize: 13),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    alert.description,
-                    style: AleraTypography.body.copyWith(fontSize: 13),
-                  ),
                 ],
               ),
             ),
@@ -306,8 +307,10 @@ class _DetailsCard extends StatelessWidget {
               Expanded(
                 child: _Metric(
                   label: 'Duration',
-                  value: '${alert.triggerDuration?.inMinutes ?? 0}',
-                  unit: 'minutes',
+                  value: alert.triggerDuration == null
+                      ? '--'
+                      : '${alert.triggerDuration!.inMinutes}',
+                  unit: alert.triggerDuration == null ? '' : 'minutes',
                   color: const Color(0xFFA684FF),
                   assetPath:
                       'alera-figma-assets/assets/icons/mini_status/info.svg',
@@ -323,32 +326,6 @@ class _DetailsCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F3FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const AleraSvgIcon(
-                  assetPath:
-                      'alera-figma-assets/assets/icons/mini_status/info.svg',
-                  width: 22,
-                  height: 22,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    alert.description,
-                    style: AleraTypography.body.copyWith(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -366,36 +343,30 @@ class _ContextCard extends StatelessWidget {
     return _SectionCard(
       title: 'Current Context',
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _Metric(
-              label: 'Reading',
-              value: _number(alert.reading),
-              unit: alert.unit,
-              color: const Color(0xFF7186FF),
-              assetPath: alert.metric == CaregiverAlertMetric.heartRate
-                  ? 'alera-figma-assets/assets/icons/mini_status/heart_rate.svg'
-                  : alert.metric == CaregiverAlertMetric.spo2
-                  ? 'alera-figma-assets/assets/icons/mini_status/spo2.svg'
-                  : 'alera-figma-assets/assets/icons/mini_status/info.svg',
-            ),
+          const AleraSvgIcon(
+            assetPath: 'alera-figma-assets/assets/icons/mini_status/info.svg',
+            width: 22,
+            height: 22,
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: _Metric(
-              label: 'Threshold',
-              value: alert.threshold == null ? '--' : _number(alert.threshold!),
-              unit: alert.unit,
-              color: const Color(0xFF6CC700),
-              assetPath: 'alera-figma-assets/assets/icons/status/warning.svg',
-            ),
-          ),
-          Expanded(
-            child: _Metric(
-              label: 'Duration',
-              value: '${alert.triggerDuration?.inMinutes ?? 0}',
-              unit: 'minutes',
-              color: const Color(0xFFA684FF),
-              assetPath: 'alera-figma-assets/assets/icons/mini_status/info.svg',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Evaluation reason',
+                  style: AleraTypography.label.copyWith(
+                    color: AleraColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  alert.description,
+                  style: AleraTypography.body.copyWith(fontSize: 12),
+                ),
+              ],
             ),
           ),
         ],
@@ -672,11 +643,50 @@ String _time(DateTime value) {
 
 String _period(DateTime value) => value.hour >= 12 ? 'PM' : 'AM';
 
-String _dateTime(DateTime value) => 'Today, ${_time(value)} ${_period(value)}';
+String _dateTime(DateTime value) {
+  final DateTime local = value.toLocal();
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime date = DateTime(local.year, local.month, local.day);
+  final int dayDifference = today.difference(date).inDays;
+  final String time = '${_time(local)} ${_period(local)}';
+  if (dayDifference == 0) return 'Today, $time';
+  if (dayDifference == 1) return 'Yesterday, $time';
+  const List<String> months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[local.month - 1]} ${local.day}, ${local.year}, $time';
+}
 
 String _relative(DateTime value) {
-  final int minutes = DateTime.now().difference(value).inMinutes;
+  final Duration elapsed = DateTime.now().difference(value);
+  if (elapsed.isNegative) return 'just now';
+  final int minutes = elapsed.inMinutes;
   if (minutes <= 1) return 'just now';
-  if (minutes < 60) return '$minutes mins ago';
-  return '${minutes ~/ 60} hrs ago';
+  if (minutes < 60) return '$minutes minute${minutes == 1 ? '' : 's'} ago';
+  final int hours = elapsed.inHours;
+  if (hours < 24) return '$hours hour${hours == 1 ? '' : 's'} ago';
+  final int days = elapsed.inDays;
+  if (days < 7) return '$days day${days == 1 ? '' : 's'} ago';
+  if (days < 30) {
+    final int weeks = days ~/ 7;
+    return '$weeks week${weeks == 1 ? '' : 's'} ago';
+  }
+  if (days < 365) {
+    final int months = days ~/ 30;
+    return '$months month${months == 1 ? '' : 's'} ago';
+  }
+  final int years = days ~/ 365;
+  return '$years year${years == 1 ? '' : 's'} ago';
 }

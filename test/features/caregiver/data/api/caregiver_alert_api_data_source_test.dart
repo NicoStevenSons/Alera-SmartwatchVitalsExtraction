@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:alera/features/caregiver/data/api/caregiver_alert_api_data_source.dart';
 import 'package:alera/features/caregiver/domain/models/caregiver_alert.dart';
+import 'package:alera/features/caregiver/data/auth/caregiver_session_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -91,18 +92,39 @@ void main() {
   test('throws a typed failure for a non-success response', () async {
     final CaregiverAlertApiDataSource source = CaregiverAlertApiDataSource(
       client: MockClient((_) async => http.Response('unavailable', 503)),
+      session: _FakeSession('test-token'),
     );
 
     expect(source.fetchAlerts(), throwsA(isA<CaregiverAlertsHttpFailure>()));
   });
+
+  test('401 clears the caregiver session', () async {
+    final _FakeSession session = _FakeSession('expired-token');
+    final CaregiverAlertApiDataSource source = CaregiverAlertApiDataSource(
+      client: MockClient((http.Request request) async {
+        expect(request.headers['authorization'], 'Bearer expired-token');
+        return http.Response('unauthorized', 401);
+      }),
+      session: session,
+    );
+
+    await expectLater(
+      source.fetchAlerts(),
+      throwsA(isA<CaregiverAlertsAuthFailure>()),
+    );
+    expect(session.cleared, isTrue);
+    expect(session.accessToken, isNull);
+  });
 }
 
 CaregiverAlertApiDataSource _sourceFor(List<Map<String, dynamic>> items) {
+  final _FakeSession session = _FakeSession('test-token');
   return CaregiverAlertApiDataSource(
     client: MockClient((http.Request request) async {
       expect(request.method, 'GET');
       expect(request.url.path, '/api/v1/alerts');
       expect(request.url.queryParameters['limit'], '100');
+      expect(request.headers['authorization'], 'Bearer test-token');
       return http.Response.bytes(
         utf8.encode(
           jsonEncode({
@@ -116,7 +138,22 @@ CaregiverAlertApiDataSource _sourceFor(List<Map<String, dynamic>> items) {
         headers: const {'content-type': 'application/json; charset=utf-8'},
       );
     }),
+    session: session,
   );
+}
+
+class _FakeSession implements CaregiverSession {
+  @override
+  String? accessToken;
+  bool cleared = false;
+
+  _FakeSession(this.accessToken);
+
+  @override
+  Future<void> clearInvalidSession() async {
+    accessToken = null;
+    cleared = true;
+  }
 }
 
 Map<String, dynamic> _alertJson({

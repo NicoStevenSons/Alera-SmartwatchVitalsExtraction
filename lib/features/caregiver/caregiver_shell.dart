@@ -8,6 +8,7 @@ import '../../design_system/alera_typography.dart';
 import 'domain/repositories/caregiver_repository.dart';
 import 'domain/models/care_recipient.dart';
 import 'domain/models/caregiver_alert.dart';
+import 'data/api/caregiver_alert_api_data_source.dart';
 import 'presentation/home/caregiver_home_page.dart';
 import 'presentation/alerts/caregiver_alerts_page.dart';
 import 'presentation/alerts/caregiver_alert_detail_page.dart';
@@ -16,8 +17,13 @@ import 'presentation/people/caregiver_people_page.dart';
 
 class CaregiverShell extends StatefulWidget {
   final CaregiverRepository repository;
+  final CaregiverAlertDataSource? alertDataSource;
 
-  const CaregiverShell({super.key, required this.repository});
+  const CaregiverShell({
+    super.key,
+    required this.repository,
+    this.alertDataSource,
+  });
 
   @override
   State<CaregiverShell> createState() => _CaregiverShellState();
@@ -140,6 +146,9 @@ class _CaregiverShellState extends State<CaregiverShell> {
                     CaregiverAlertsPage(
                       alerts: widget.repository.getAlerts(),
                       careRecipients: widget.repository.getCareRecipients(),
+                      alertDataSource:
+                          widget.alertDataSource ??
+                          _RepositoryAlertDataSource(widget.repository),
                       onAlertTap: (alert) => _openAlertDetail(context, alert),
                     ),
                     const _PlaceholderPage(
@@ -210,6 +219,15 @@ class _CaregiverShellState extends State<CaregiverShell> {
       ),
     );
   }
+}
+
+class _RepositoryAlertDataSource implements CaregiverAlertDataSource {
+  final CaregiverRepository repository;
+
+  const _RepositoryAlertDataSource(this.repository);
+
+  @override
+  Future<List<CaregiverAlert>> fetchAlerts() async => repository.getAlerts();
 }
 
 class _PlaceholderPage extends StatelessWidget {

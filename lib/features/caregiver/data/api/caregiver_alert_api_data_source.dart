@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../config/app_config.dart';
 import '../../domain/models/caregiver_alert.dart';
+import '../auth/caregiver_session_controller.dart';
 import 'dto/caregiver_alert_dto.dart';
 
 abstract interface class CaregiverAlertDataSource {
@@ -13,12 +14,15 @@ abstract interface class CaregiverAlertDataSource {
 
 class CaregiverAlertApiDataSource implements CaregiverAlertDataSource {
   final http.Client _client;
+  final CaregiverSession _session;
   final Duration timeout;
 
   CaregiverAlertApiDataSource({
     http.Client? client,
+    CaregiverSession? session,
     this.timeout = const Duration(seconds: 15),
-  }) : _client = client ?? http.Client();
+  }) : _client = client ?? http.Client(),
+       _session = session ?? CaregiverSessionController.instance;
 
   @override
   Future<List<CaregiverAlert>> fetchAlerts() async {
@@ -27,7 +31,20 @@ class CaregiverAlertApiDataSource implements CaregiverAlertDataSource {
     ).replace(queryParameters: const {'limit': '100'});
 
     try {
-      final http.Response response = await _client.get(uri).timeout(timeout);
+      final String? token = _session.accessToken;
+      if (token == null || token.isEmpty) {
+        throw const CaregiverAlertsAuthFailure(401);
+      }
+      final http.Response response = await _client
+          .get(uri, headers: {'authorization': 'Bearer $token'})
+          .timeout(timeout);
+      if (response.statusCode == 401) {
+        await _session.clearInvalidSession();
+        throw const CaregiverAlertsAuthFailure(401);
+      }
+      if (response.statusCode == 403) {
+        throw const CaregiverAlertsAuthFailure(403);
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw CaregiverAlertsHttpFailure(response.statusCode);
       }
@@ -81,4 +98,11 @@ final class CaregiverAlertsTimeoutFailure extends CaregiverAlertsFailure {
 final class CaregiverAlertsRequestFailure extends CaregiverAlertsFailure {
   CaregiverAlertsRequestFailure(String details)
     : super('Could not load alerts: $details');
+}
+
+final class CaregiverAlertsAuthFailure extends CaregiverAlertsFailure {
+  final int statusCode;
+
+  const CaregiverAlertsAuthFailure(this.statusCode)
+    : super('Caregiver authorization failed.');
 }
