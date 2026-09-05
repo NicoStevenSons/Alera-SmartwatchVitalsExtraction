@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/sleep_data.dart';
+import '../../../models/sleep_data.dart';
 
 class SleepHistoryPage extends StatelessWidget {
   final SleepData sleepData;

@@ -15,7 +15,6 @@ import '../models/device_status_data.dart';
 import '../models/sleep_data.dart';
 
 import '../widgets/device_status_dialog.dart';
-import '../widgets/clear_pending_queue_button.dart';
 import '../widgets/sleep_display.dart';
 import '../widgets/heart_rate_display.dart';
 import '../widgets/spo2_display.dart';
@@ -279,8 +278,9 @@ class _ElderlyInterfaceState
                       Expanded(
                         child:
                             HeartRateDisplay(
-                          heartRateData:
-                              heartRateData,
+                              heartRateData: heartRateData,
+                              uploadQueueService:
+                              uploadQueueService,
                         ),
                       ),
 
@@ -289,9 +289,11 @@ class _ElderlyInterfaceState
                       ),
 
                       Expanded(
-                        child: SpO2Display(
-                          spo2Data:
-                              spo2Data,
+                        child:
+                        SpO2Display(
+                          spo2Data: spo2Data,
+                          uploadQueueService:
+                          uploadQueueService,
                         ),
                       ),
                     ],
@@ -319,10 +321,6 @@ class _ElderlyInterfaceState
                     height: 16,
                   ),
 
-                  ClearPendingQueueButton(
-                    uploadQueueService:
-                        uploadQueueService,
-                  ),
                 ],
               ),
             ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/sleep_data.dart';
-import '../records/sleep_history_page.dart';
+import '../interfaces/pages/records/sleep_history_page.dart';
 
 class SleepDisplay extends StatelessWidget {
   final SleepData sleepData;
@@ -29,6 +29,10 @@ class SleepDisplay extends StatelessWidget {
       return SizedBox(
         width: double.infinity,
         child: Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+            ),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
