@@ -14,15 +14,18 @@ import 'presentation/alerts/caregiver_alerts_page.dart';
 import 'presentation/alerts/caregiver_alert_detail_page.dart';
 import 'presentation/patient_detail/caregiver_patient_detail_page.dart';
 import 'presentation/people/caregiver_people_page.dart';
+import '../../services/fcm_notification_service.dart';
 
 class CaregiverShell extends StatefulWidget {
   final CaregiverRepository repository;
   final CaregiverAlertDataSource? alertDataSource;
+  final VoidCallback? onSignOut;
 
   const CaregiverShell({
     super.key,
     required this.repository,
     this.alertDataSource,
+    this.onSignOut,
   });
 
   @override
@@ -37,6 +40,15 @@ class _CaregiverShellState extends State<CaregiverShell> {
   void initState() {
     super.initState();
     _homeCareRecipient = widget.repository.getCareRecipients().first;
+    NotificationTapBus.instance.onAlert = (_) => setState(() => _selectedIndex = 2);
+  }
+
+  @override
+  void dispose() {
+    if (NotificationTapBus.instance.onAlert != null) {
+      NotificationTapBus.instance.onAlert = null;
+    }
+    super.dispose();
   }
 
   void _openCareRecipient(BuildContext context, CareRecipient careRecipient) {
@@ -155,7 +167,11 @@ class _CaregiverShellState extends State<CaregiverShell> {
                       title: 'Reminders',
                       isTemporary: true,
                     ),
-                    const _PlaceholderPage(title: 'More', isTemporary: true),
+                    _PlaceholderPage(
+                      title: 'More',
+                      isTemporary: true,
+                      onSignOut: widget.onSignOut,
+                    ),
                   ],
                 ),
               ),
@@ -166,7 +182,9 @@ class _CaregiverShellState extends State<CaregiverShell> {
                   ).colorScheme.surface, // Matches the navbar background
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06), // Subtle shadow
+                      color: Colors.black.withValues(
+                        alpha: 0.06,
+                      ), // Subtle shadow
                       blurRadius: 5,
                       offset: const Offset(
                         0,
@@ -233,8 +251,13 @@ class _RepositoryAlertDataSource implements CaregiverAlertDataSource {
 class _PlaceholderPage extends StatelessWidget {
   final String title;
   final bool isTemporary;
+  final VoidCallback? onSignOut;
 
-  const _PlaceholderPage({required this.title, this.isTemporary = false});
+  const _PlaceholderPage({
+    required this.title,
+    this.isTemporary = false,
+    this.onSignOut,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -244,6 +267,12 @@ class _PlaceholderPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: AleraTypography.pageTitle),
+          if (onSignOut != null)
+            TextButton.icon(
+              onPressed: onSignOut,
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out'),
+            ),
           const Spacer(),
           Center(
             child: Text(

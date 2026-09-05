@@ -39,7 +39,10 @@ class CaregiverAlertApiDataSource implements CaregiverAlertDataSource {
           .get(uri, headers: {'authorization': 'Bearer $token'})
           .timeout(timeout);
       if (response.statusCode == 401) {
-        await _session.clearInvalidSession();
+        // A late response from an old account must not sign out a new one.
+        if (_session.accessToken == token) {
+          await _session.clearInvalidSession();
+        }
         throw const CaregiverAlertsAuthFailure(401);
       }
       if (response.statusCode == 403) {

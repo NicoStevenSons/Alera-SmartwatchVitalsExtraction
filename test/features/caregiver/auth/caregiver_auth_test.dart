@@ -106,13 +106,19 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      MaterialApp(home: CaregiverLoginPage(sessionController: session)),
+      MaterialApp(home: HouseholdAuthFlow(sessionController: session)),
     );
 
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('household-code-field')),
-      'TEST-HOUSEHOLD',
+      'AAAA-BBBB',
     );
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Caregiver'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('caregiver-email-field')),
       'caregiver@example.test',
@@ -124,21 +130,23 @@ void main() {
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('caregiver-login-error')), findsOneWidget);
+    expect(find.byKey(const Key('auth-error')), findsOneWidget);
     expect(find.text('Unable to sign in. Check your details.'), findsOneWidget);
     expect(session.status, CaregiverSessionStatus.restoring);
   });
 }
 
 class _MemoryTokenStore implements CaregiverTokenStore {
-  String? token;
+  StoredSession? session;
+  String? get token => session?.token;
 
   @override
-  Future<void> clearToken() async => token = null;
+  Future<void> clearSession() async => session = null;
 
   @override
-  Future<String?> readToken() async => token;
+  Future<StoredSession?> readSession() async => session;
 
   @override
-  Future<void> writeToken(String token) async => this.token = token;
+  Future<void> writeSession(StoredSession session) async =>
+      this.session = session;
 }
