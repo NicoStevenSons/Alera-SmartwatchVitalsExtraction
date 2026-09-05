@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../Services/upload_queue_service.dart';
+import '../../../../Services/upload_queue_service.dart';
 
 class ClearPendingQueueButton extends StatelessWidget {
   final UploadQueueService uploadQueueService;

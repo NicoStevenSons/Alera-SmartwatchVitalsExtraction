@@ -14,11 +14,11 @@ import '../models/steps_data.dart';
 import '../models/device_status_data.dart';
 import '../models/sleep_data.dart';
 
-import '../widgets/device_status_dialog.dart';
-import '../widgets/sleep_display.dart';
-import '../widgets/heart_rate_display.dart';
-import '../widgets/spo2_display.dart';
-import '../widgets/steps_display.dart';
+import '../features/elderly/presentation/widgets/device_status_dialog.dart';
+import '../features/elderly/presentation/widgets/sleep_display.dart';
+import '../features/elderly/presentation/widgets/heart_rate_display.dart';
+import '../features/elderly/presentation/widgets/spo2_display.dart';
+import '../features/elderly/presentation/widgets/steps_display.dart';
 
 class ElderlyInterface extends StatefulWidget {
   const ElderlyInterface({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/heart_rate_data.dart';
-import '../Services/upload_queue_service.dart';
-import '../interfaces/pages/records/heartRate_history_page.dart';
+import '../../../../models/heart_rate_data.dart';
+import '../../../../Services/upload_queue_service.dart';
+import '../../../../interfaces/pages/records/heartRate_history_page.dart';
 
 class HeartRateDisplay extends StatelessWidget {
   final HeartRateData heartRateData;

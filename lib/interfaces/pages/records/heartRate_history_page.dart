@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../../Services/upload_queue_service.dart';
-import '../../../widgets/clear_pending_queue_button.dart';
+import '../../../features/elderly/presentation/widgets/clear_pending_queue_button.dart';
 
 class HeartRateHistoryPage extends StatefulWidget {
   final UploadQueueService uploadQueueService;

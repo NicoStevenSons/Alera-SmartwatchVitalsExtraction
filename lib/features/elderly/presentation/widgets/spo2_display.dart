@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/spo2_data.dart';
-import '../Services/upload_queue_service.dart';
-import '../interfaces/pages/records/spo2_history_page.dart';
+import '../../../../models/spo2_data.dart';
+import '../../../../Services/upload_queue_service.dart';
+import '../../../../interfaces/pages/records/spo2_history_page.dart';
 
 class SpO2Display extends StatelessWidget {
   final SpO2Data spo2Data;

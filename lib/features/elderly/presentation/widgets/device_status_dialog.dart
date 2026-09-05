@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/device_status_data.dart';
+import '../../../../models/device_status_data.dart';
 
 Future<void> showDeviceStatusDialog({
   required BuildContext context,
