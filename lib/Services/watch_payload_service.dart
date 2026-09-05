@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../models/heart_rate_data.dart';
 import '../models/spo2_data.dart';
 import '../models/steps_data.dart';
+import '../models/sleep_data.dart';
 import '../models/device_status_data.dart';
 
 class WatchPayloadService {
@@ -22,73 +23,82 @@ class WatchPayloadService {
     required void Function(SpO2Data data) onSpO2Received,
     required void Function(StepsData data) onStepsReceived,
     required void Function(DeviceStatusData data) onDeviceStatusReceived,
+    required void Function(SleepData data) onSleepReceived,
     void Function(Object error)? onError,
   }) {
-    _subscription = _payloadChannel
-        .receiveBroadcastStream()
-        .listen(
-          (dynamic event) {
-            try {
-              final String payloadJson = event.toString();
+    _subscription = _payloadChannel.receiveBroadcastStream().listen(
+      (dynamic event) {
+        try {
+          final String payloadJson = event.toString();
 
-              final Map<String, dynamic> payload =
-                  jsonDecode(payloadJson) as Map<String, dynamic>;
+          final Map<String, dynamic> payload =
+              jsonDecode(payloadJson) as Map<String, dynamic>;
 
-              debugPrint('Flutter received payload: $payload');
+          debugPrint('Flutter received payload: $payload');
 
-              final String? eventType =
-                  payload['event_type'] as String?;
+          final String? eventType = payload['event_type'] as String?;
 
-              if (eventType == 'heart_rate') {
-                final HeartRateData heartRateData =
-                    HeartRateData.fromJson(payload);
+          if (eventType == 'sleep') {
+            final SleepData sleepData = SleepData.fromJson(payload);
 
-                onHeartRateReceived(heartRateData);
-                return;
-              }
+            onSleepReceived(sleepData);
 
-              if (eventType == 'spo2') {
-                final SpO2Data spo2Data =
-                    SpO2Data.fromJson(payload);
+            return;
+          }
 
-                onSpO2Received(spo2Data);
-                return;
-              }
+          if (eventType == 'heart_rate') {
+            final HeartRateData heartRateData = HeartRateData.fromJson(payload);
 
-              if (eventType == 'steps') {
-                final StepsData stepsData =
-                StepsData.fromJson(payload);
+            onHeartRateReceived(heartRateData);
+            return;
+          }
 
-                onStepsReceived(stepsData);
-                return;
-                    }
+          if (eventType == 'spo2') {
+            final SpO2Data spo2Data = SpO2Data.fromJson(payload);
 
-              if (eventType == 'device_status') {
-                final DeviceStatusData deviceStatusData =
-                  DeviceStatusData.fromJson(payload);
+            onSpO2Received(spo2Data);
+            return;
+          }
 
-                onDeviceStatusReceived(deviceStatusData);
-                return;
-}
-                    
-              
+          if (eventType == 'steps') {
+            final StepsData stepsData = StepsData.fromJson(payload);
 
-              debugPrint(
-                'Unknown smartwatch payload type: $eventType',
-              );
-            } on FormatException catch (error) {
-              debugPrint('Invalid JSON payload: $error');
-              onError?.call(error);
-            } catch (error) {
-              debugPrint('Could not process payload: $error');
-              onError?.call(error);
-            }
-          },
-          onError: (Object error) {
-            debugPrint('Payload stream error: $error');
-            onError?.call(error);
-          },
-        );
+            onStepsReceived(stepsData);
+            return;
+          }
+
+          if (eventType == 'device_status') {
+            debugPrint(
+              'Device status JSON: '
+              'battery=${payload['battery_percent']}, '
+              'device=${payload['device_name']}, '
+              'model=${payload['device_model']}, '
+              'connected=${payload['connected_to_phone']}, '
+              'phone=${payload['connected_phone_name']}',
+            ); //removable
+
+            final DeviceStatusData deviceStatusData = DeviceStatusData.fromJson(
+              payload,
+            );
+
+            onDeviceStatusReceived(deviceStatusData);
+            return;
+          }
+
+          debugPrint('Unknown smartwatch payload type: $eventType');
+        } on FormatException catch (error) {
+          debugPrint('Invalid JSON payload: $error');
+          onError?.call(error);
+        } catch (error) {
+          debugPrint('Could not process payload: $error');
+          onError?.call(error);
+        }
+      },
+      onError: (Object error) {
+        debugPrint('Payload stream error: $error');
+        onError?.call(error);
+      },
+    );
   }
 
   Future<void> dispose() async {

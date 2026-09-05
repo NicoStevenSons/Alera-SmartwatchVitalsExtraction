@@ -9,18 +9,13 @@ class StepSessionData {
     required this.endTime,
   });
 
-  factory StepSessionData.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final num? stepCountValue =
-        json['step_count'] as num?;
+  factory StepSessionData.fromJson(Map<String, dynamic> json) {
+    final num? stepCountValue = json['step_count'] as num?;
 
     return StepSessionData(
       stepCount: stepCountValue?.toInt() ?? 0,
-      startTime:
-          json['start_time'] as String? ?? '',
-      endTime:
-          json['end_time'] as String? ?? '',
+      startTime: json['start_time'] as String? ?? '',
+      endTime: json['end_time'] as String? ?? '',
     );
   }
 }
@@ -28,45 +23,30 @@ class StepSessionData {
 class StepsData {
   final List<StepSessionData> sessions;
 
-  const StepsData({
-    required this.sessions,
-  });
+  const StepsData({required this.sessions});
 
-  factory StepsData.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory StepsData.fromJson(Map<String, dynamic> json) {
     final List<dynamic> sessionList =
-        json['sessions'] as List<dynamic>? ??
-            <dynamic>[];
+        json['sessions'] as List<dynamic>? ?? <dynamic>[];
 
     return StepsData(
       sessions: sessionList
           .map(
             (dynamic session) =>
-                StepSessionData.fromJson(
-              session as Map<String, dynamic>,
-            ),
+                StepSessionData.fromJson(session as Map<String, dynamic>),
           )
           .toList(),
     );
   }
 
   factory StepsData.empty() {
-    return const StepsData(
-      sessions: <StepSessionData>[],
-    );
+    return const StepsData(sessions: <StepSessionData>[]);
   }
 
   int get totalSteps {
-    return sessions.fold(
-      0,
-      (
-        int total,
-        StepSessionData session,
-      ) {
-        return total + session.stepCount;
-      },
-    );
+    return sessions.fold(0, (int total, StepSessionData session) {
+      return total + session.stepCount;
+    });
   }
 
   String get displayedTotalSteps {

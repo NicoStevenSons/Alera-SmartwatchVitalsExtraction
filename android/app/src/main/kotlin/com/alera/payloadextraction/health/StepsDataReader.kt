@@ -5,9 +5,10 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
-import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.Instant
 
 data class StepSession(
     val stepCount: Long,
@@ -21,22 +22,24 @@ class StepsDataReader(
     private val healthConnectClient =
         HealthConnectClient.getOrCreate(context)
 
-    suspend fun readTodayStepSessions(): List<StepSession> {
+    suspend fun readAllStepSessions(): List<StepSession> {
+
         val zoneId = ZoneId.systemDefault()
-
-        val startOfToday =
-            LocalDate.now(zoneId)
-                .atStartOfDay(zoneId)
-                .toInstant()
-
         val now = Instant.now()
+        // val startTime = now.minus(7, ChronoUnit.DAYS)
+
+        val startOfToday = LocalDate.now(zoneId)
+                    .atStartOfDay(zoneId)
+                    .toInstant()
 
         val response =
             healthConnectClient.readRecords(
                 ReadRecordsRequest(
-                    recordType = StepsRecord::class,
+                    recordType =
+                        StepsRecord::class,
                     timeRangeFilter =
                         TimeRangeFilter.between(
+                            //startTime,
                             startOfToday,
                             now
                         ),

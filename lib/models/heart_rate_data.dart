@@ -9,20 +9,24 @@ class HeartRateData {
     required this.measuredAt,
   });
 
-  factory HeartRateData.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final num? bpmValue =
-        json['heart_rate_bpm'] as num?;
+  Map<String, dynamic> toJson() {
+    return {
+      'event_type': 'heart_rate',
+      'heart_rate_bpm': bpm,
+      'status': status,
+      'measured_at': measuredAt,
+    };
+  }
 
-    final num? statusValue =
-        json['status'] as num?;
+  factory HeartRateData.fromJson(Map<String, dynamic> json) {
+    final num? bpmValue = json['heart_rate_bpm'] as num?;
+
+    final num? statusValue = json['status'] as num?;
 
     return HeartRateData(
       bpm: bpmValue?.round(),
       status: statusValue?.toInt(),
-      measuredAt:
-          json['measured_at'] as String?,
+      measuredAt: json['measured_at'] as String?,
     );
   }
 

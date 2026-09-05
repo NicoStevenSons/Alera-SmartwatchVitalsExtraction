@@ -1,4 +1,4 @@
-name: alera_phone
+name: alera
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -34,11 +34,37 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  sqflite: ^2.4.3
+  path: ^1.9.1
+  workmanager: ^0.10.9
+  flutter_svg: ^2.2.0
+  flutter_secure_storage: 10.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.0
+
+
+  flutter_lints: ^6.0.0
+
+flutter_native_splash:
+  color: "#ffffff"
+  android_12:
+    color: "#ffffff"   
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+
+  image_path: "assets/icons/alera-logo-no-padding.png"
+
+  adaptive_icon_background: "#F5F5F5"
+  adaptive_icon_foreground: "assets/icons/alera-logo.png"
+  
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -56,6 +82,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - alera-figma-assets/assets/icons/status/
+    - alera-figma-assets/assets/icons/mini_status/
+    - alera-figma-assets/assets/icons/vitals/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

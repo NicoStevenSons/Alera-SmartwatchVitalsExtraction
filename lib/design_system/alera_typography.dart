@@ -1,0 +1,29 @@
+import 'package:flutter/material.dart';
+
+import 'alera_colors.dart';
+
+abstract final class AleraTypography {
+  static const TextStyle pageTitle = TextStyle(
+    color: AleraColors.textPrimary,
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle sectionTitle = TextStyle(
+    color: AleraColors.textPrimary,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle body = TextStyle(
+    color: AleraColors.textSecondary,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+  );
+
+  static const TextStyle label = TextStyle(
+    color: AleraColors.textSecondary,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+  );
+}
