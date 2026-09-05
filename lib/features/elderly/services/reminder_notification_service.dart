@@ -68,14 +68,14 @@ class ReminderNotificationService {
     );
 
     await _notifications.zonedSchedule(
-    id: reminder.reminderId.hashCode,
+    id: reminder.occurrenceId.hashCode,
     title: reminder.title,
-    body: reminder.description ?? 'Alera reminder',
+    body: reminder.instructions ?? 'Alera reminder',
     scheduledDate: scheduledTime,
     notificationDetails: details,
     androidScheduleMode:
       AndroidScheduleMode.exactAllowWhileIdle,
-   payload: reminder.reminderId,
+   payload: reminder.occurrenceId,
     );
   }
 }

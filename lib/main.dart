@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'config/app_config.dart';
 
 import 'Services/background_sync_service.dart';
+
 import 'interfaces/interface_selection.dart';
+
 import 'features/elderly/services/reminder_notification_service.dart';
 
 void main() async {
@@ -18,6 +23,12 @@ void main() async {
     frequency: const Duration(minutes: 15),
     constraints: Constraints(networkType: NetworkType.connected),
   );
+
+    await Supabase.initialize(
+    url: AppConfig.supabaseUrl,
+    publishableKey: AppConfig.supabaseAnonKey,
+  );
+
   
   runApp(const AleraApp());
 }

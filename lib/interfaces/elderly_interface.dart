@@ -19,10 +19,11 @@ import '../features/elderly/presentation/widgets/sleep_display.dart';
 import '../features/elderly/presentation/widgets/heart_rate_display.dart';
 import '../features/elderly/presentation/widgets/spo2_display.dart';
 import '../features/elderly/presentation/widgets/steps_display.dart';
-//import '../features/elderly/domain/models/elderly_reminder.dart';
-import '../features/elderly/presentation/widgets/elderly_reminder_card.dart';
+import '../features/elderly/domain/models/elderly_reminder.dart';
+import '../features/elderly/data/api/elderly_reminder_supabase_service.dart';
 import '../features/elderly/services/reminder_notification_service.dart';
-import '../features/elderly/data/mock/mock_elderly_reminders.dart';
+import '../features/elderly/presentation/widgets/elderly_reminders_list.dart';
+
 
 class ElderlyInterface extends StatefulWidget {
   const ElderlyInterface({super.key});
@@ -33,6 +34,7 @@ class ElderlyInterface extends StatefulWidget {
 
 class _ElderlyInterfaceState extends State<ElderlyInterface>
     with WidgetsBindingObserver {
+
   final WatchPayloadService watchPayloadService = WatchPayloadService();
 
   final HealthEventApiService healthEventApiService = HealthEventApiService(
@@ -41,6 +43,13 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
   );
 
   final UploadQueueService uploadQueueService = UploadQueueService();
+
+  final ElderlyReminderSupabaseService reminderService =
+    ElderlyReminderSupabaseService();
+
+  List<ElderlyReminder> reminders = [];
+
+  bool remindersLoading = true;
 
   late final FifoUploadService fifoUploadService;
 
@@ -140,24 +149,12 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
       },
     );
 
+    _loadReminders();
+
     watchListenerController.start();
 
     _processPendingQueue();
-
-    _scheduleMockReminders();
   }
-
-Future<void> _scheduleMockReminders() async {
-  for (final reminder in mockElderlyReminders) {
-    await ReminderNotificationService.instance
-        .scheduleReminder(reminder);
-
-    debugPrint(
-      'Scheduled reminder: '
-      '${reminder.title} at ${reminder.dueAt}',
-    );
-  }
-}
 
 
   Future<void> _processPendingQueue() async {
@@ -178,6 +175,44 @@ Future<void> _scheduleMockReminders() async {
       _processPendingQueue();
     }
   }
+
+  Future<void> _loadReminders() async {
+  try {
+    final result =
+        await reminderService.getRemindersForPatient(
+      AppConfig.testPatientId,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      reminders = result;
+      remindersLoading = false;
+    });
+
+    for (final reminder in reminders) {
+      if (reminder.status == 'UPCOMING' ||
+          reminder.status == 'SNOOZED') {
+        await ReminderNotificationService.instance
+            .scheduleReminder(reminder);
+      }
+    }
+  } catch (error) {
+    debugPrint(
+      'Failed to load reminders: $error',
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      remindersLoading = false;
+    });
+  }
+}
 
   @override
   void dispose() {
@@ -279,9 +314,10 @@ Future<void> _scheduleMockReminders() async {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  ElderlyReminderCard(
-                    reminder: mockElderlyReminders.first,
-                      ),
+                  ElderlyRemindersList(
+                    isLoading: remindersLoading,
+                    reminders: reminders,
+                  ),
                 ],
               ),
             )

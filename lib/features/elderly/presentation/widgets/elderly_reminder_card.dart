@@ -39,12 +39,12 @@ class ElderlyReminderCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (reminder.description != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      reminder.description!,
-                    ),
-                  ],
+                  if (reminder.instructions != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                      reminder.instructions!,
+                      ),
+                    ],
                   const SizedBox(height: 10),
                   Text(
                     _formatDateTime(
