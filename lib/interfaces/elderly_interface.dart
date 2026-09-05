@@ -15,7 +15,6 @@ import '../models/device_status_data.dart';
 import '../models/sleep_data.dart';
 
 import '../widgets/device_status_dialog.dart';
-import '../widgets/clear_pending_queue_button.dart';
 import '../widgets/sleep_display.dart';
 import '../widgets/heart_rate_display.dart';
 import '../widgets/spo2_display.dart';
@@ -220,12 +219,24 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
                   Row(
                     children: [
                       Expanded(
-                        child: HeartRateDisplay(heartRateData: heartRateData),
+                        child:
+                            HeartRateDisplay(
+                              heartRateData: heartRateData,
+                              uploadQueueService:
+                              uploadQueueService,
+                        ),
                       ),
 
                       const SizedBox(width: 8),
 
-                      Expanded(child: SpO2Display(spo2Data: spo2Data)),
+                      Expanded(
+                        child:
+                        SpO2Display(
+                          spo2Data: spo2Data,
+                          uploadQueueService:
+                          uploadQueueService,
+                        ),
+                      ),
                     ],
                   ),
 
@@ -239,9 +250,6 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
 
                   const SizedBox(height: 16),
 
-                  ClearPendingQueueButton(
-                    uploadQueueService: uploadQueueService,
-                  ),
                 ],
               ),
             ),

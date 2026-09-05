@@ -4,8 +4,13 @@ import '../Services/upload_queue_service.dart';
 
 class ClearPendingQueueButton extends StatelessWidget {
   final UploadQueueService uploadQueueService;
+  final String? metricType;
 
-  const ClearPendingQueueButton({super.key, required this.uploadQueueService});
+  const ClearPendingQueueButton({
+    super.key,
+    required this.uploadQueueService,
+    this.metricType,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +48,19 @@ class ClearPendingQueueButton extends StatelessWidget {
           return;
         }
 
-        final int deletedCount = await uploadQueueService.clearPendingQueue();
+        final int deletedCount;
+            
+            if (metricType != null) {
+                deletedCount =
+                 await uploadQueueService
+                  .clearPendingQueueByMetric(
+                          metricType!,
+                        );
+              } else {
+                deletedCount =
+                await uploadQueueService
+                .clearPendingQueue();
+              }
 
         debugPrint(
           'Cleared $deletedCount pending '
