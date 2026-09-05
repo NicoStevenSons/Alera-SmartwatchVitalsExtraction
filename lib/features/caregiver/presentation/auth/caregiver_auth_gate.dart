@@ -9,6 +9,7 @@ import '../../../../interfaces/elderly_interface.dart';
 import '../../../patient/data/auth/patient_auth_api.dart';
 import '../../caregiver_shell.dart';
 import '../../data/api/caregiver_alert_api_data_source.dart';
+import '../../data/api/caregiver_patient_api_data_source.dart';
 import '../../data/auth/caregiver_auth_api.dart';
 import '../../data/auth/caregiver_session_controller.dart';
 import '../../data/auth/caregiver_token_store.dart';
@@ -85,6 +86,13 @@ class _CaregiverAuthGateState extends State<CaregiverAuthGate> {
             : CaregiverShell(
                 repository: widget.repository,
                 alertDataSource: CaregiverAlertApiDataSource(session: _session),
+                loadNotificationAlert: CaregiverAlertApiDataSource(
+                  session: _session,
+                ).fetchAlert,
+                patientDataSource: CaregiverPatientApiDataSource(
+                  session: _session,
+                ),
+                householdCode: _session.householdCode,
                 onSignOut: _signOut,
               ),
     };

@@ -9,6 +9,7 @@ enum CaregiverSessionStatus { restoring, unauthenticated, authenticated }
 
 abstract interface class CaregiverSession {
   String? get accessToken;
+  String? get householdCode;
   Future<void> clearInvalidSession();
 }
 
@@ -48,6 +49,8 @@ class CaregiverSessionController extends ChangeNotifier
   SessionType? get sessionType => _session?.type;
   @override
   String? get accessToken => _session?.token;
+  @override
+  String? get householdCode => _session?.householdCode;
 
   Future<void> _serialize(Future<void> Function() operation) {
     final result = _storageWork.then((_) => operation());
@@ -94,7 +97,14 @@ class CaregiverSessionController extends ChangeNotifier
       email: email,
       password: password,
     );
-    await _accept(StoredSession(token, SessionType.caregiver), revision);
+    await _accept(
+      StoredSession(
+        token,
+        SessionType.caregiver,
+        householdCode: householdCode.trim(),
+      ),
+      revision,
+    );
   }
 
   Future<void> accessPatient({

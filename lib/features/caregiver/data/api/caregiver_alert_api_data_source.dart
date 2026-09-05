@@ -24,6 +24,53 @@ class CaregiverAlertApiDataSource implements CaregiverAlertDataSource {
   }) : _client = client ?? http.Client(),
        _session = session ?? CaregiverSessionController.instance;
 
+  /// Loads one alert using the active caregiver bearer token.
+  Future<CaregiverAlert> fetchAlert(String alertId) async {
+    final uri = Uri.parse(
+      '${AppConfig.backendBaseUrl}/api/v1/alerts/${Uri.encodeComponent(alertId)}',
+    );
+    final token = _session.accessToken;
+    if (token == null || token.isEmpty) {
+      throw const CaregiverAlertsAuthFailure(401);
+    }
+    try {
+      final response = await _client
+          .get(uri, headers: {'authorization': 'Bearer $token'})
+          .timeout(timeout);
+      // Do not deliver data from a session that ended during the request.
+      if (_session.accessToken != token) {
+        throw const CaregiverAlertsAuthFailure(401);
+      }
+      if (response.statusCode == 401) {
+        await _session.clearInvalidSession();
+        throw const CaregiverAlertsAuthFailure(401);
+      }
+      if (response.statusCode == 403) {
+        throw const CaregiverAlertsAuthFailure(403);
+      }
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw CaregiverAlertsHttpFailure(response.statusCode);
+      }
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Alert response must be a JSON object.');
+      }
+      final alert = CaregiverAlertDto.fromJson(decoded).toDomain();
+      if (alert.id.toLowerCase() != alertId.toLowerCase()) {
+        throw const FormatException(
+          'Alert response ID does not match request.',
+        );
+      }
+      return alert;
+    } on FormatException catch (error) {
+      throw CaregiverAlertsParseFailure(error.message);
+    } on TimeoutException {
+      throw const CaregiverAlertsTimeoutFailure();
+    } on http.ClientException catch (error) {
+      throw CaregiverAlertsRequestFailure(error.message);
+    }
+  }
+
   @override
   Future<List<CaregiverAlert>> fetchAlerts() async {
     final Uri uri = Uri.parse(

@@ -7,7 +7,8 @@ enum SessionType { caregiver, elderlyPatient }
 class StoredSession {
   final String token;
   final SessionType type;
-  const StoredSession(this.token, this.type);
+  final String? householdCode;
+  const StoredSession(this.token, this.type, {this.householdCode});
 }
 
 abstract interface class CaregiverTokenStore {
@@ -50,7 +51,14 @@ class SecureCaregiverTokenStore implements CaregiverTokenStore {
       if (token is! String || token.trim().isEmpty || type == null) {
         throw const FormatException();
       }
-      return StoredSession(token, type);
+      final householdCode = value['household_code'];
+      return StoredSession(
+        token,
+        type,
+        householdCode: householdCode is String && householdCode.isNotEmpty
+            ? householdCode
+            : null,
+      );
     } on FormatException {
       await clearSession();
       return null;
@@ -67,6 +75,8 @@ class SecureCaregiverTokenStore implements CaregiverTokenStore {
         'type': session.type == SessionType.caregiver
             ? 'caregiver'
             : 'elderly_patient',
+        if (session.householdCode != null)
+          'household_code': session.householdCode,
       }),
     );
     await _storage.delete(key: _legacyTokenKey);

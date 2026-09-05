@@ -10,11 +10,13 @@ import 'widgets/care_recipient_card.dart';
 class CaregiverPeoplePage extends StatelessWidget {
   final List<CareRecipient> careRecipients;
   final ValueChanged<CareRecipient> onCareRecipientSelected;
+  final VoidCallback? onAddPatient;
 
   const CaregiverPeoplePage({
     super.key,
     required this.careRecipients,
     required this.onCareRecipientSelected,
+    this.onAddPatient,
   });
 
   void _showMockFeedback(BuildContext context, String message) {
@@ -87,10 +89,12 @@ class CaregiverPeoplePage extends StatelessWidget {
               }
 
               return _AddPatientButton(
-                onPressed: () => _showMockFeedback(
-                  context,
-                  'Adding a patient is not available in the mock yet.',
-                ),
+                onPressed:
+                    onAddPatient ??
+                    () => _showMockFeedback(
+                      context,
+                      'Adding a patient is not available in the mock yet.',
+                    ),
               );
             },
           ),

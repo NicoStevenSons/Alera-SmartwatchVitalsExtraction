@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'alert_notification.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -17,8 +18,11 @@ class FcmNotificationService {
   FcmNotificationService._();
   static final instance = FcmNotificationService._();
   final _local = FlutterLocalNotificationsPlugin();
-  final _messaging = FirebaseMessaging.instance;
+  // Resolve Firebase only inside the operation using it. In particular,
+  // register's best-effort guard must also cover an unavailable Firebase app.
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
   String? _token;
+  bool _debugTokenPrinted = false;
   String? get debugToken => kDebugMode ? _token : null;
 
   Future<void> initialize() async {
@@ -27,8 +31,8 @@ class FcmNotificationService {
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
-      onDidReceiveNotificationResponse: (r) =>
-          _handle(jsonDecode(r.payload ?? '{}')),
+      onDidReceiveNotificationResponse: (r) => NotificationTapBus.instance
+          .handle(AlertNotification.fromLocalPayload(r.payload)),
     );
     await _local
         .resolvePlatformSpecificImplementation<
@@ -43,7 +47,17 @@ class FcmNotificationService {
           ),
         );
     FirebaseMessaging.onMessage.listen(_foreground);
-    FirebaseMessaging.onMessageOpenedApp.listen((m) => _handle(m.data));
+    FirebaseMessaging.onMessageOpenedApp.listen(_handle);
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) _handle(initialMessage);
+    final localLaunch = await _local.getNotificationAppLaunchDetails();
+    if (localLaunch?.didNotificationLaunchApp ?? false) {
+      NotificationTapBus.instance.handle(
+        AlertNotification.fromLocalPayload(
+          localLaunch?.notificationResponse?.payload,
+        ),
+      );
+    }
   }
 
   Future<void> register(CaregiverSessionController session) async {
@@ -80,7 +94,7 @@ class FcmNotificationService {
   Future<void> _send(String token, String? bearer) async {
     if (bearer == null) return;
     try {
-      await http.post(
+      final response = await http.post(
         Uri.parse('${AppConfig.backendBaseUrl}/api/v1/devices/fcm-token'),
         headers: {
           'authorization': 'Bearer $bearer',
@@ -88,11 +102,22 @@ class FcmNotificationService {
         },
         body: jsonEncode({'token': token, 'platform': 'ANDROID'}),
       );
+      assert(() {
+        if (!_debugTokenPrinted &&
+            response.statusCode >= 200 &&
+            response.statusCode < 300) {
+          debugPrint(
+            'FCM token: ${FcmNotificationService.instance.debugToken}',
+          );
+          _debugTokenPrinted = true;
+        }
+        return true;
+      }());
     } catch (_) {}
   }
 
   Future<void> _foreground(RemoteMessage m) async {
-    final d = m.data;
+    final d = {...m.data, '_notification_event_id': m.messageId};
     await _local.show(
       m.hashCode,
       m.notification?.title ?? 'Alera health alert',
@@ -109,16 +134,9 @@ class FcmNotificationService {
     );
   }
 
-  void _handle(Map<String, dynamic> data) {
-    if (data['type'] == 'ALERT' && data['alert_id'] is String) {
-      NotificationTapBus.instance.handle(data['alert_id'] as String);
-    }
+  void _handle(RemoteMessage message) {
+    NotificationTapBus.instance.handle(
+      AlertNotification.parse(message.data, messageId: message.messageId),
+    );
   }
-}
-
-class NotificationTapBus {
-  NotificationTapBus._();
-  static final instance = NotificationTapBus._();
-  void Function(String)? onAlert;
-  void handle(String id) => onAlert?.call(id);
 }
