@@ -19,6 +19,10 @@ import '../features/elderly/presentation/widgets/sleep_display.dart';
 import '../features/elderly/presentation/widgets/heart_rate_display.dart';
 import '../features/elderly/presentation/widgets/spo2_display.dart';
 import '../features/elderly/presentation/widgets/steps_display.dart';
+//import '../features/elderly/domain/models/elderly_reminder.dart';
+import '../features/elderly/presentation/widgets/elderly_reminder_card.dart';
+import '../features/elderly/services/reminder_notification_service.dart';
+import '../features/elderly/data/mock/mock_elderly_reminders.dart';
 
 class ElderlyInterface extends StatefulWidget {
   const ElderlyInterface({super.key});
@@ -139,7 +143,22 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
     watchListenerController.start();
 
     _processPendingQueue();
+
+    _scheduleMockReminders();
   }
+
+Future<void> _scheduleMockReminders() async {
+  for (final reminder in mockElderlyReminders) {
+    await ReminderNotificationService.instance
+        .scheduleReminder(reminder);
+
+    debugPrint(
+      'Scheduled reminder: '
+      '${reminder.title} at ${reminder.dueAt}',
+    );
+  }
+}
+
 
   Future<void> _processPendingQueue() async {
     if (!AppConfig.enableBackend) {
@@ -218,6 +237,7 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
                 children: [
                   Row(
                     children: [
+
                       Expanded(
                         child:
                             HeartRateDisplay(
@@ -255,9 +275,17 @@ class _ElderlyInterfaceState extends State<ElderlyInterface>
             ),
 
             // REMINDERS TAB
-            const Center(
-              child: Text('Reminders', style: TextStyle(fontSize: 20)),
-            ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  ElderlyReminderCard(
+                    reminder: mockElderlyReminders.first,
+                      ),
+                ],
+              ),
+            )
+    
           ],
         ),
       ),

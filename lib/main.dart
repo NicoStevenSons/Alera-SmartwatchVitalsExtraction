@@ -3,11 +3,14 @@ import 'package:workmanager/workmanager.dart';
 
 import 'Services/background_sync_service.dart';
 import 'interfaces/interface_selection.dart';
+import 'features/elderly/services/reminder_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Workmanager().initialize(callbackDispatcher);
+
+  await ReminderNotificationService.instance.initialize();
 
   await Workmanager().registerPeriodicTask(
     'alera-periodic-health-upload',
@@ -15,7 +18,7 @@ void main() async {
     frequency: const Duration(minutes: 15),
     constraints: Constraints(networkType: NetworkType.connected),
   );
-
+  
   runApp(const AleraApp());
 }
 
