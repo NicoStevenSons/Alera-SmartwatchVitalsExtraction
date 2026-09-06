@@ -7,6 +7,8 @@ import '../../../../design_system/widgets/alera_button.dart';
 import '../../../../design_system/widgets/alera_card.dart';
 import '../../../../interfaces/elderly_interface.dart';
 import '../../../patient/data/auth/patient_auth_api.dart';
+import '../../../patient/presentation/patient_access.dart';
+import '../../../patient/presentation/patient_qr_scanner_page.dart';
 import '../../caregiver_shell.dart';
 import '../../data/api/caregiver_alert_api_data_source.dart';
 import '../../data/api/caregiver_patient_api_data_source.dart';
@@ -107,7 +109,14 @@ class _CaregiverAuthGateState extends State<CaregiverAuthGate> {
   }
 }
 
-enum _AuthStep { welcome, household, role, caregiver, patient }
+enum _AuthStep {
+  welcome,
+  role,
+  household,
+  caregiver,
+  patientOptions,
+  patientManual,
+}
 
 class HouseholdAuthFlow extends StatefulWidget {
   final CaregiverSessionController sessionController;
@@ -126,6 +135,7 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
   _AuthStep _step = _AuthStep.welcome;
   bool _submitting = false;
   String? _error;
+  String? _householdName;
 
   @override
   void dispose() {
@@ -140,6 +150,7 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
     if (_submitting) return;
     setState(() {
       _step = step;
+      if (step == _AuthStep.household) _householdName = null;
       _error = null;
       _password.clear();
       _accessCode.clear();
@@ -147,18 +158,46 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
   }
 
   void _back() => _go(switch (_step) {
-    _AuthStep.welcome || _AuthStep.household => _AuthStep.welcome,
-    _AuthStep.role => _AuthStep.household,
-    _AuthStep.caregiver || _AuthStep.patient => _AuthStep.role,
+    _AuthStep.welcome => _AuthStep.welcome,
+    _AuthStep.role => _AuthStep.welcome,
+    _AuthStep.household => _AuthStep.role,
+    _AuthStep.caregiver => _AuthStep.household,
+    _AuthStep.patientOptions => _AuthStep.role,
+    _AuthStep.patientManual => _AuthStep.patientOptions,
   });
 
   String? _required(String? value) =>
       value == null || value.trim().isEmpty ? 'Required' : null;
 
-  void _continueHousehold() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  Future<void> _continueHousehold() async {
+    if (_submitting || !(_formKey.currentState?.validate() ?? false)) return;
     _household.text = _household.text.trim().toUpperCase();
-    _go(_AuthStep.role);
+    setState(() {
+      _submitting = true;
+      _error = null;
+      _householdName = null;
+    });
+    try {
+      final validation = await widget.sessionController.validateHousehold(
+        _household.text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _householdName = validation.householdName;
+        _step = _AuthStep.caregiver;
+      });
+    } on HouseholdValidationException catch (failure) {
+      if (mounted) setState(() => _error = failure.message);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'We couldn’t verify the household right now. Check your connection and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -168,10 +207,9 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
       _error = null;
     });
     try {
-      if (_step == _AuthStep.patient) {
+      if (_step == _AuthStep.patientManual) {
         await widget.sessionController.accessPatient(
-          householdCode: _household.text,
-          accessCode: _accessCode.text.trim(),
+          accessCode: normalizePatientAccessCode(_accessCode.text),
         );
       } else {
         await widget.sessionController.login(
@@ -197,10 +235,11 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
   Widget build(BuildContext context) {
     final title = switch (_step) {
       _AuthStep.welcome => 'Welcome to Alera',
+      _AuthStep.role => 'How will you use Alera?',
       _AuthStep.household => 'Enter household code',
-      _AuthStep.role => 'Choose your role',
       _AuthStep.caregiver => 'Caregiver sign in',
-      _AuthStep.patient => 'Patient access',
+      _AuthStep.patientOptions => 'Connect to your care household',
+      _AuthStep.patientManual => 'Enter your patient code',
     };
     return PopScope(
       canPop: _step == _AuthStep.welcome,
@@ -241,7 +280,7 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                           const SizedBox(height: 24),
                           AleraButton(
                             label: 'Get Started',
-                            onPressed: () => _go(_AuthStep.household),
+                            onPressed: () => _go(_AuthStep.role),
                           ),
                         ],
                         if (_step == _AuthStep.household) ...[
@@ -261,19 +300,18 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                                 ).hasMatch(value?.trim() ?? '')
                                 ? null
                                 : 'Enter a household code in XXXX-XXXX format.',
+                            enabled: !_submitting,
                             onFieldSubmitted: (_) => _continueHousehold(),
                           ),
                           const SizedBox(height: 20),
                           AleraButton(
-                            label: 'Continue',
-                            onPressed: _continueHousehold,
+                            label: _submitting ? 'Validating…' : 'Continue',
+                            onPressed: _submitting ? null : _continueHousehold,
                           ),
                         ],
-                        if (_step == _AuthStep.role ||
-                            _step == _AuthStep.caregiver ||
-                            _step == _AuthStep.patient) ...[
+                        if (_step == _AuthStep.caregiver) ...[
                           Text(
-                            'Household: ${_household.text}',
+                            'Signing in to ${_householdName!}',
                             key: const Key('selected-household'),
                           ),
                           Align(
@@ -287,14 +325,29 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                           ),
                         ],
                         if (_step == _AuthStep.role) ...[
+                          Text(
+                            'Choose the option that best describes you.',
+                            style: AleraTypography.body,
+                          ),
+                          const SizedBox(height: 20),
                           AleraButton(
-                            label: 'Caregiver',
-                            onPressed: () => _go(_AuthStep.caregiver),
+                            label: 'I’m a Caregiver',
+                            onPressed: () => _go(_AuthStep.household),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Monitor and support the people assigned to your care.',
+                            style: AleraTypography.body,
                           ),
                           const SizedBox(height: 14),
                           AleraButton(
-                            label: 'Patient',
-                            onPressed: () => _go(_AuthStep.patient),
+                            label: 'I’m a Patient',
+                            onPressed: () => _go(_AuthStep.patientOptions),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Connect to your care household and view your health information.',
+                            style: AleraTypography.body,
                           ),
                         ],
                         if (_step == _AuthStep.caregiver) ...[
@@ -324,20 +377,66 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                             onFieldSubmitted: (_) => _submit(),
                           ),
                         ],
-                        if (_step == _AuthStep.patient)
+                        if (_step == _AuthStep.patientOptions) ...[
+                          Text(
+                            'Scan the QR code provided by your caregiver to securely access your Alera account.',
+                            style: AleraTypography.body,
+                          ),
+                          const SizedBox(height: 20),
+                          AleraButton(
+                            label: 'Scan QR Code',
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => PatientQrScannerPage(
+                                  sessionController: widget.sessionController,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text('or', textAlign: TextAlign.center),
+                          ),
+                          AleraButton(
+                            label: 'Enter Patient Code',
+                            variant: AleraButtonVariant.secondary,
+                            onPressed: () => _go(_AuthStep.patientManual),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Your patient code can only be used once.',
+                            style: AleraTypography.body,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        if (_step == _AuthStep.patientManual) ...[
+                          Text(
+                            'Enter the one-time code provided by your caregiver.',
+                            style: AleraTypography.body,
+                          ),
+                          const SizedBox(height: 20),
                           TextFormField(
                             key: const Key('patient-access-code-field'),
                             controller: _accessCode,
                             enabled: !_submitting,
-                            obscureText: true,
+                            textCapitalization: TextCapitalization.characters,
                             autocorrect: false,
                             enableSuggestions: false,
                             decoration: const InputDecoration(
-                              labelText: 'Access code',
+                              hintText: 'XXXX-XXXX-XXXX',
                             ),
-                            validator: _required,
+                            inputFormatters: const [
+                              PatientAccessCodeFormatter(),
+                            ],
+                            validator: (value) =>
+                                isValidPatientAccessCode(
+                                  normalizePatientAccessCode(value ?? ''),
+                                )
+                                ? null
+                                : 'Enter a valid patient code.',
                             onFieldSubmitted: (_) => _submit(),
                           ),
+                        ],
                         if (_error != null) ...[
                           const SizedBox(height: 12),
                           Text(
@@ -347,7 +446,7 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                           ),
                         ],
                         if (_step == _AuthStep.caregiver ||
-                            _step == _AuthStep.patient) ...[
+                            _step == _AuthStep.patientManual) ...[
                           const SizedBox(height: 20),
                           AleraButton(
                             label: _submitting ? 'Signing in…' : 'Sign in',

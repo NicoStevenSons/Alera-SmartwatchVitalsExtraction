@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../alera_colors.dart';
 import '../alera_typography.dart';
 
-enum AleraButtonVariant { primary, secondary }
+enum AleraButtonVariant { primary, secondary, white }
 
 class AleraButton extends StatelessWidget {
   final String label;
@@ -28,26 +28,41 @@ class AleraButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool primary = variant == AleraButtonVariant.primary;
+    final bool white = variant == AleraButtonVariant.white;
     final ButtonStyle style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return primary
-              ? AleraColors.primary.withValues(alpha: 0.38)
+              ? AleraColors.primary.withOpacity(0.38)
+              : white
+              ? Colors.white.withOpacity(0.55)
               : AleraColors.divider;
         }
         if (states.contains(WidgetState.pressed)) {
-          return primary ? const Color(0xFF7449C9) : const Color(0xFFAFA6D6);
+          return primary
+              ? const Color(0xFF7449C9)
+              : white
+              ? const Color(0xFFF4F1FA)
+              : const Color(0xFFAFA6D6);
         }
         if (states.contains(WidgetState.hovered)) {
-          return primary ? const Color(0xFFC3A7F5) : const Color(0xFFC9C2E0);
+          return primary
+              ? const Color(0xFFC3A7F5)
+              : white
+              ? const Color(0xFFF8F6FC)
+              : const Color(0xFFC9C2E0);
         }
-        return primary ? const Color(0xFFAE8BEA) : const Color(0xFFEDE9F7);
+        return primary
+            ? const Color(0xFFAE8BEA)
+            : white
+            ? Colors.white
+            : const Color(0xFFEDE9F7);
       }),
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return primary
-              ? Colors.white.withValues(alpha: 0.70)
-              : AleraColors.textSecondary.withValues(alpha: 0.50);
+              ? Colors.white.withOpacity(0.70)
+              : AleraColors.textSecondary.withOpacity(0.50);
         }
         return primary ? Colors.white : const Color(0xFF6B6385);
       }),

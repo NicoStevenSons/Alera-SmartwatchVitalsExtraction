@@ -9,20 +9,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('QR payload is valid JSON with the specified fields', () {
-    expect(
-      jsonDecode(
-        buildPatientAccessQrPayload(
-          householdCode: 'HOME',
-          accessCode: 'ONE-TIME',
-        ),
-      ),
-      {
-        'type': 'alera_patient_access',
-        'version': 1,
-        'household_code': 'HOME',
-        'access_code': 'ONE-TIME',
-      },
-    );
+    expect(jsonDecode(buildPatientAccessQrPayload(accessCode: 'ONE-TIME')), {
+      'type': 'alera_patient_access',
+      'version': 2,
+      'access_code': 'ONE-TIME',
+    });
   });
 
   testWidgets('validates required and numeric fields', (tester) async {

@@ -145,10 +145,8 @@ class _AddPatientPageState extends State<AddPatientPage> {
     }
   }
 
-  String get _qrPayload => buildPatientAccessQrPayload(
-    householdCode: widget.householdCode!,
-    accessCode: _issued!.accessCode,
-  );
+  String get _qrPayload =>
+      buildPatientAccessQrPayload(accessCode: _issued!.accessCode);
 
   void _done() {
     _clearAccessCode();
@@ -386,33 +384,24 @@ class _AddPatientPageState extends State<AddPatientPage> {
         style: AleraTypography.body,
       ),
       const SizedBox(height: 20),
-      if (householdCode != null)
-        Semantics(
-          label: 'Patient access QR code',
-          child: QrImageView(
-            key: const Key('access-code-qr'),
-            data: _qrPayload,
-            size: 220,
-          ),
-        )
-      else
-        Text(
-          'Sign in again to display the household QR code.',
-          style: AleraTypography.body,
-          textAlign: TextAlign.center,
+      Semantics(
+        label: 'Patient access QR code',
+        child: QrImageView(
+          key: const Key('access-code-qr'),
+          data: _qrPayload,
+          size: 220,
         ),
+      ),
       const SizedBox(height: 20),
       AleraButton(
         label: 'Share',
         icon: Icons.share,
-        onPressed: householdCode == null
-            ? null
-            : () => SharePlus.instance.share(
-                ShareParams(
-                  text:
-                      'Join ${_created!.fullName} on Alera. Household code: $householdCode\nOne-time access code: ${_issued!.accessCode}\nThis invitation expires ${_formatDateTime(_issued!.expiresAt)}.',
-                ),
-              ),
+        onPressed: () => SharePlus.instance.share(
+          ShareParams(
+            text:
+                'Join ${_created!.fullName} on Alera. One-time patient code: ${_issued!.accessCode}\nThis invitation expires ${_formatDateTime(_issued!.expiresAt)}.',
+          ),
+        ),
       ),
       const SizedBox(height: 10),
       AleraButton(
@@ -490,12 +479,8 @@ String _formatDateTime(DateTime value) {
       '${local.minute.toString().padLeft(2, '0')}';
 }
 
-String buildPatientAccessQrPayload({
-  required String householdCode,
-  required String accessCode,
-}) => jsonEncode({
+String buildPatientAccessQrPayload({required String accessCode}) => jsonEncode({
   'type': 'alera_patient_access',
-  'version': 1,
-  'household_code': householdCode,
+  'version': 2,
   'access_code': accessCode,
 });

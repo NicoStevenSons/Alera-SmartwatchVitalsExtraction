@@ -30,6 +30,8 @@ class CaregiverAlert {
   final String unit;
   final Duration? triggerDuration;
   final DateTime detectedAt;
+  final DateTime? confirmedAt;
+  final DateTime? resolvedAt;
   final List<AlertTimelineEntry> timeline;
   final String? note;
 
@@ -47,6 +49,8 @@ class CaregiverAlert {
     required this.unit,
     required this.triggerDuration,
     required this.detectedAt,
+    this.confirmedAt,
+    this.resolvedAt,
     required this.timeline,
     this.note,
   });

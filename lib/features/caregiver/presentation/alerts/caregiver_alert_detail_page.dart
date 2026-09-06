@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_typography.dart';
+import '../../../../design_system/widgets/alera_button.dart';
 import '../../../../design_system/widgets/alera_card.dart';
 import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
-import '../patient_detail/widgets/monitoring_devices_card.dart';
 
 class CaregiverAlertDetailPage extends StatefulWidget {
   final CaregiverAlert alert;
@@ -25,6 +25,12 @@ class CaregiverAlertDetailPage extends StatefulWidget {
 
 class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
   final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _noteController.text = widget.alert.note ?? '';
+  }
 
   @override
   void dispose() {
@@ -56,7 +62,6 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
         alert.patientDisplayName ??
         widget.careRecipient?.name ??
         'Unknown patient';
-    final bool hasAdditionalContext = alert.description.trim().isNotEmpty;
 
     return Scaffold(
       body: SafeArea(
@@ -97,16 +102,8 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   _DetailsCard(alert: alert),
-                  if (hasAdditionalContext) ...[
-                    const SizedBox(height: 12),
-                    _ContextCard(alert: alert),
-                  ],
-                  if (widget.careRecipient != null) ...[
-                    const SizedBox(height: 12),
-                    PatientMonitoringDevicesCard(
-                      devices: widget.careRecipient!.healthSnapshot.devices,
-                    ),
-                  ],
+                  const SizedBox(height: 12),
+                  _ContextCard(careRecipient: widget.careRecipient),
                   const SizedBox(height: 12),
                   _TimelineCard(alert: alert),
                   const SizedBox(height: 12),
@@ -118,18 +115,20 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _PrimaryAction(
+                        child: AleraButton(
                           icon: Icons.phone,
                           label: 'Call',
-                          onTap: () => _mock('Call'),
+                          onPressed: () => _mock('Call'),
+                          height: 48,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _PrimaryAction(
+                        child: AleraButton(
                           icon: Icons.message,
                           label: 'Message',
-                          onTap: () => _mock('Message'),
+                          onPressed: () => _mock('Message'),
+                          height: 48,
                         ),
                       ),
                     ],
@@ -138,18 +137,22 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _SecondaryAction(
+                        child: AleraButton(
                           icon: Icons.check,
                           label: 'Acknowledge',
-                          onTap: () => _mock('Acknowledge'),
+                          onPressed: () => _mock('Acknowledge'),
+                          variant: AleraButtonVariant.white,
+                          height: 48,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _SecondaryAction(
+                        child: AleraButton(
                           icon: Icons.check_circle_outline,
                           label: 'Resolve',
-                          onTap: () => _mock('Resolve'),
+                          onPressed: () => _mock('Resolve'),
+                          variant: AleraButtonVariant.white,
+                          height: 48,
                         ),
                       ),
                     ],
@@ -184,15 +187,22 @@ class _SummaryCard extends StatelessWidget {
     final bool critical = alert.severity == CaregiverAlertSeverity.critical;
     return AleraCard(
       padding: EdgeInsets.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: severityColor, width: 7)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: ColoredBox(
+              color: severityColor,
+              child: const SizedBox(width: 7),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             AleraSvgIcon(assetPath: iconPath, width: 70, height: 70),
             const SizedBox(width: 12),
             Expanded(
@@ -221,7 +231,7 @@ class _SummaryCard extends StatelessWidget {
                         onTap: onStatusTap,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: AleraColors.critical.withValues(alpha: .14),
+                            color: AleraColors.critical.withOpacity(0.14),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Padding(
@@ -257,8 +267,10 @@ class _SummaryCard extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -327,6 +339,34 @@ class _DetailsCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F3FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFFA684FF),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    alert.description.trim().isEmpty
+                        ? 'No additional alert description is available.'
+                        : alert.description,
+                    style: AleraTypography.body.copyWith(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -334,40 +374,58 @@ class _DetailsCard extends StatelessWidget {
 }
 
 class _ContextCard extends StatelessWidget {
-  final CaregiverAlert alert;
+  final CareRecipient? careRecipient;
 
-  const _ContextCard({required this.alert});
+  const _ContextCard({required this.careRecipient});
 
   @override
   Widget build(BuildContext context) {
+    final snapshot = careRecipient?.healthSnapshot;
     return _SectionCard(
       title: 'Current Context',
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AleraSvgIcon(
-            assetPath: 'alera-figma-assets/assets/icons/mini_status/info.svg',
-            width: 22,
-            height: 22,
+          Text(
+            snapshot == null
+                ? 'Latest patient readings are unavailable.'
+                : 'Latest available • ${_dateTime(snapshot.lastCheckIn)}',
+            style: AleraTypography.body.copyWith(fontSize: 11),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Evaluation reason',
-                  style: AleraTypography.label.copyWith(
-                    color: AleraColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  alert.description,
-                  style: AleraTypography.body.copyWith(fontSize: 12),
-                ),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 12,
+            children: [
+              _ContextMetric(
+                icon: Icons.favorite_outline,
+                label: 'Heart Rate',
+                value: snapshot?.heartRateBpm?.toString() ?? '--',
+                unit: snapshot?.heartRateBpm == null ? '' : 'BPM',
+              ),
+              _ContextMetric(
+                icon: Icons.water_drop_outlined,
+                label: 'SpO₂',
+                value: snapshot?.spo2Percent == null
+                    ? '--'
+                    : _number(snapshot!.spo2Percent!),
+                unit: snapshot?.spo2Percent == null ? '' : '%',
+              ),
+              _ContextMetric(
+                icon: Icons.directions_walk,
+                label: 'Steps',
+                value: snapshot?.steps?.toString() ?? '--',
+                unit: '',
+              ),
+              _ContextMetric(
+                icon: Icons.psychology_outlined,
+                label: 'Stress',
+                value: snapshot?.stressLabel.trim().isEmpty ?? true
+                    ? '--'
+                    : snapshot!.stressLabel,
+                unit: '',
+              ),
+            ],
           ),
         ],
       ),
@@ -382,15 +440,7 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entries = alert.timeline.isEmpty
-        ? [
-            AlertTimelineEntry(
-              occurredAt: alert.detectedAt,
-              title: 'Alert triggered',
-              description: '${alert.title} detected',
-            ),
-          ]
-        : alert.timeline;
+    final entries = _timelineEntries(alert);
     return _SectionCard(
       title: 'Timeline',
       child: Column(
@@ -460,16 +510,57 @@ class _NotesCard extends StatelessWidget {
       child: TextField(
         controller: controller,
         maxLines: 1,
-        onTap: onEdit,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => onEdit(),
+        style: const TextStyle(fontSize: 13), // Slightly smaller text fit
         decoration: InputDecoration(
+          isDense: true, // 1. Reduces vertical height constraints
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 8, // 2. Controls vertical height (lower = slimmer)
+          ),
           hintText: 'Add a note about this alert...',
-          hintStyle: const TextStyle(color: Color(0xFFB5A6DB)),
+          hintStyle: const TextStyle(color: Color(0xFFB5A6DB), fontSize: 13),
           filled: true,
           fillColor: const Color(0xFFF7F3FF),
-          suffixIcon: const Icon(Icons.edit, color: Color(0xFFB5A6DB)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-            borderSide: BorderSide.none,
+          
+          // 3. Constrains the suffix container size
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 36,
+            minHeight: 36,
+          ),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: Container(
+              width: 28, // 4. Direct control over pen circle size
+              height: 28,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE9DFFF),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Save note',
+                onPressed: onEdit,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Color(0xFF9A79E8),
+                  size: 15,
+                ),
+              ),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20), // Reduced border radius to match smaller height
+            borderSide: const BorderSide(color: Color(0xFFE0D6F5)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: const BorderSide(
+              color: AleraColors.primary,
+              width: 1.5,
+            ),
           ),
         ),
       ),
@@ -564,58 +655,86 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _PrimaryAction extends StatelessWidget {
+class _ContextMetric extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final String value;
+  final String unit;
 
-  const _PrimaryAction({
+  const _ContextMetric({
     required this.icon,
     required this.label,
-    required this.onTap,
+    required this.value,
+    required this.unit,
   });
 
   @override
   Widget build(BuildContext context) {
+    final double width = (MediaQuery.sizeOf(context).width - 72) / 2;
     return SizedBox(
-      height: 48,
-      child: FilledButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 17),
-        label: Text(label),
-        style: FilledButton.styleFrom(backgroundColor: AleraColors.primary),
+      width: width,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 19, color: AleraColors.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AleraTypography.body.copyWith(fontSize: 11),
+                ),
+                Text(
+                  value,
+                  style: AleraTypography.sectionTitle.copyWith(fontSize: 18),
+                ),
+                if (unit.isNotEmpty)
+                  Text(
+                    unit,
+                    style: AleraTypography.body.copyWith(fontSize: 10),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SecondaryAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _SecondaryAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 17),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AleraColors.textSecondary,
-          side: BorderSide.none,
-          backgroundColor: Colors.white,
-        ),
+List<AlertTimelineEntry> _timelineEntries(CaregiverAlert alert) {
+  final entries = <AlertTimelineEntry>[...alert.timeline];
+  final bool hasInitialTrigger = entries.any(
+    (entry) =>
+        entry.occurredAt == alert.detectedAt &&
+        entry.title.toLowerCase() == 'alert triggered',
+  );
+  if (!hasInitialTrigger) {
+    entries.add(
+      AlertTimelineEntry(
+        occurredAt: alert.detectedAt,
+        title: 'Alert triggered',
+        description: '${alert.title} detected at ${_number(alert.reading)} ${alert.unit}',
       ),
     );
   }
+
+  final DateTime? resolvedAt = alert.resolvedAt;
+  if (resolvedAt != null &&
+      !entries.any((entry) => entry.title.toLowerCase() == 'alert resolved')) {
+    entries.add(
+      AlertTimelineEntry(
+        occurredAt: resolvedAt,
+        title: 'Alert resolved',
+        description: 'The alert was marked as resolved.',
+      ),
+    );
+  }
+
+  entries.sort((a, b) => a.occurredAt.compareTo(b.occurredAt));
+  return entries;
 }
 
 String _statusLabel(CaregiverAlertStatus status) {
@@ -633,15 +752,16 @@ String _number(double value) =>
     value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 
 String _time(DateTime value) {
-  final int hour = value.hour > 12
-      ? value.hour - 12
-      : value.hour == 0
+  final DateTime local = value.toLocal();
+  final int hour = local.hour > 12
+      ? local.hour - 12
+      : local.hour == 0
       ? 12
-      : value.hour;
-  return '$hour:${value.minute.toString().padLeft(2, '0')}';
+      : local.hour;
+  return '$hour:${local.minute.toString().padLeft(2, '0')}';
 }
 
-String _period(DateTime value) => value.hour >= 12 ? 'PM' : 'AM';
+String _period(DateTime value) => value.toLocal().hour >= 12 ? 'PM' : 'AM';
 
 String _dateTime(DateTime value) {
   final DateTime local = value.toLocal();

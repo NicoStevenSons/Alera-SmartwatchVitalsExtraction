@@ -68,27 +68,21 @@ void main() {
   });
 
   test(
-    'patient API sends only household and access code, accepts bearer response',
+    'patient API sends only access code and accepts bearer response',
     () async {
       final api = PatientAuthApi(
         client: MockClient((request) async {
           expect(request.method, 'POST');
           expect(request.url.path, '/api/v1/auth/patient/access');
           expect(request.headers['authorization'], isNull);
-          expect(jsonDecode(request.body), {
-            'household_code': 'AAAA-BBBB',
-            'access_code': 'access-code',
-          });
+          expect(jsonDecode(request.body), {'access_code': 'access-code'});
           return http.Response(
             '{"access_token":"patient-token","token_type":"bearer"}',
             200,
           );
         }),
       );
-      expect(
-        await api.access(householdCode: 'AAAA-BBBB', accessCode: 'access-code'),
-        'patient-token',
-      );
+      expect(await api.access(accessCode: 'access-code'), 'patient-token');
     },
   );
 
@@ -104,7 +98,7 @@ void main() {
       () async {
         final api = PatientAuthApi(client: MockClient((_) async => response));
         await expectLater(
-          api.access(householdCode: 'AAAA-BBBB', accessCode: 'code'),
+          api.access(accessCode: 'code'),
           throwsA(isA<PatientAccessFailure>()),
         );
       },
@@ -118,7 +112,7 @@ void main() {
     ]) {
       final api = PatientAuthApi(client: MockClient((_) async => throw error));
       await expectLater(
-        api.access(householdCode: 'AAAA-BBBB', accessCode: 'code'),
+        api.access(accessCode: 'code'),
         throwsA(isA<PatientAccessFailure>()),
       );
     }
@@ -129,10 +123,7 @@ void main() {
       final store = SecureCaregiverTokenStore();
       final session = controller(store);
       if (type == SessionType.elderlyPatient) {
-        await session.accessPatient(
-          householdCode: 'AAAA-BBBB',
-          accessCode: 'code',
-        );
+        await session.accessPatient(accessCode: 'code');
       } else {
         await session.login(
           householdCode: 'AAAA-BBBB',
@@ -186,10 +177,7 @@ void main() {
         store,
         client: MockClient((_) => reply.future),
       );
-      final login = session.accessPatient(
-        householdCode: 'AAAA-BBBB',
-        accessCode: 'code',
-      );
+      final login = session.accessPatient(accessCode: 'code');
       await session.logout();
       reply.complete(http.Response('{"access_token":"late-token"}', 200));
       await login;
@@ -200,7 +188,7 @@ void main() {
 
   test('patient JWT is not attached to health-event uploads', () async {
     final session = controller(SecureCaregiverTokenStore());
-    await session.accessPatient(householdCode: 'AAAA-BBBB', accessCode: 'code');
+    await session.accessPatient(accessCode: 'code');
     expect(session.accessToken, 'patient-token');
     const uploads = HealthEventApiService(
       baseUrl: 'https://example.test',
@@ -235,99 +223,69 @@ void main() {
       throwsA(isA<CaregiverAlertsAuthFailure>()),
     );
     await session.logout();
-    await session.accessPatient(householdCode: 'AAAA-BBBB', accessCode: 'code');
+    await session.accessPatient(accessCode: 'code');
     reply.complete(http.Response('', 401));
     await assertion;
     expect(session.sessionType, SessionType.elderlyPatient);
     expect(session.accessToken, 'patient-token');
   });
 
-  testWidgets(
-    'patient entry reuses household, supports Back/Edit and signs out',
-    (tester) async {
-      final store = SecureCaregiverTokenStore();
-      final session = controller(
-        store,
-        client: MockClient((request) async {
-          expect(jsonDecode(request.body), {
-            'household_code': 'CCCC-DDDD',
-            'access_code': 'patient-code',
-          });
-          return http.Response('{"access_token":"patient-token"}', 200);
-        }),
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: CaregiverAuthGate(
-            repository: const MockCaregiverRepository(),
-            sessionController: session,
-          ),
+  testWidgets('role-first patient entry persists and routes on first success', (
+    tester,
+  ) async {
+    final store = SecureCaregiverTokenStore();
+    final session = controller(
+      store,
+      client: MockClient((request) async {
+        expect(jsonDecode(request.body), {'access_code': '7K3M-9Q2D-R8TX'});
+        return http.Response('{"access_token":"patient-token"}', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CaregiverAuthGate(
+          repository: const MockCaregiverRepository(),
+          sessionController: session,
         ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Get Started'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Enter a household code in XXXX-XXXX format.'),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.byKey(const Key('household-code-field')),
-        'aaaa-bbbb',
-      );
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Patient'));
-      await tester.pumpAndSettle();
-      expect(find.text('Household: AAAA-BBBB'), findsOneWidget);
-      await tester.tap(find.text('Back'));
-      await tester.pumpAndSettle();
-      expect(find.text('Choose your role'), findsOneWidget);
-      await tester.tap(find.text('Caregiver'));
-      await tester.pumpAndSettle();
-      expect(find.text('Household: AAAA-BBBB'), findsOneWidget);
-      await tester.tap(find.text('Edit household'));
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<TextFormField>(
-              find.byKey(const Key('household-code-field')),
-            )
-            .controller
-            ?.text,
-        'AAAA-BBBB',
-      );
-      await tester.enterText(
-        find.byKey(const Key('household-code-field')),
-        'CCCC-DDDD',
-      );
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Patient'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('patient-access-code-field')),
-        'patient-code',
-      );
-      await tester.tap(find.text('Sign in'));
-      await tester.pumpAndSettle();
-      expect(find.byType(ElderlyInterface), findsOneWidget);
-      expect(find.text('Vitals'), findsOneWidget);
-      expect(session.sessionType, SessionType.elderlyPatient);
-      await tester.tap(find.text('Sign out'));
-      await tester.pumpAndSettle();
-      expect(find.text('Welcome to Alera'), findsOneWidget);
-      expect(await store.readSession(), isNull);
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    expect(find.text('How will you use Alera?'), findsOneWidget);
+    expect(find.byKey(const Key('household-code-field')), findsNothing);
+    await tester.tap(find.text('I’m a Patient'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enter Patient Code'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('patient-access-code-field')),
+      '7k3m 9q2d r8tx',
+    );
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ElderlyInterface), findsOneWidget);
+    expect(find.text('Vitals'), findsOneWidget);
+    expect(session.sessionType, SessionType.elderlyPatient);
+    expect((await store.readSession())?.token, 'patient-token');
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome to Alera'), findsOneWidget);
+    expect(await store.readSession(), isNull);
+  });
 
   testWidgets('caregiver flow opens shell and More signs out', (tester) async {
     final store = SecureCaregiverTokenStore();
     final session = controller(
       store,
       client: MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/household/validate') {
+          expect(jsonDecode(request.body), {'household_code': 'AAAA-BBBB'});
+          return http.Response(
+            '{"valid":true,"household_name":"Alera Test Household"}',
+            200,
+          );
+        }
         expect(request.url.path, '/api/v1/auth/caregiver/login');
         expect(jsonDecode(request.body), {
           'household_code': 'AAAA-BBBB',
@@ -348,13 +306,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('I’m a Caregiver'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('household-code-field')),
       'AAAA-BBBB',
     );
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Caregiver'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('caregiver-email-field')),
@@ -376,7 +334,7 @@ void main() {
   });
 
   testWidgets(
-    'patient invalid code stays on form with generic error; system Back works',
+    'used patient code stays on form with safe error; system Back works',
     (tester) async {
       final session = controller(
         SecureCaregiverTokenStore(),
@@ -395,30 +353,27 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Get Started'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('household-code-field')),
-        'AAAA-BBBB',
-      );
-      await tester.tap(find.text('Continue'));
+      await tester.tap(find.text('I’m a Patient'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Patient'));
+      await tester.tap(find.text('Enter Patient Code'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('patient-access-code-field')),
-        'wrong',
+        '7K3M-9Q2D-R8TX',
       );
       await tester.tap(find.text('Sign in'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Unable to sign in. Check your household and access code.'),
+        find.text(
+          'This patient code is invalid, expired, or has already been used. Ask your caregiver for a new one.',
+        ),
         findsOneWidget,
       );
       expect(find.text('private backend error'), findsNothing);
       expect(session.accessToken, isNull);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(find.text('Choose your role'), findsOneWidget);
-      expect(find.text('Household: AAAA-BBBB'), findsOneWidget);
+      expect(find.text('Connect to your care household'), findsOneWidget);
     },
   );
 

@@ -14,24 +14,18 @@ class PatientAuthApi {
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client();
 
-  Future<String> access({
-    required String householdCode,
-    required String accessCode,
-  }) async {
+  Future<String> access({required String accessCode}) async {
     try {
       final response = await _client
           .post(
             Uri.parse('${AppConfig.backendBaseUrl}/api/v1/auth/patient/access'),
             headers: const {'content-type': 'application/json'},
-            body: jsonEncode({
-              'household_code': householdCode,
-              'access_code': accessCode,
-            }),
+            body: jsonEncode({'access_code': accessCode}),
           )
           .timeout(timeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw const PatientAccessFailure(
-          'Unable to sign in. Check your household and access code.',
+          'This patient code is invalid, expired, or has already been used. Ask your caregiver for a new one.',
         );
       }
       final decoded = jsonDecode(response.body);
@@ -46,11 +40,17 @@ class PatientAuthApi {
       }
       return token;
     } on TimeoutException {
-      throw const PatientAccessFailure('Unable to connect. Please try again.');
+      throw const PatientAccessFailure(
+        'We couldn’t connect to Alera. Check your internet connection and try again.',
+      );
     } on http.ClientException {
-      throw const PatientAccessFailure('Unable to connect. Please try again.');
+      throw const PatientAccessFailure(
+        'We couldn’t connect to Alera. Check your internet connection and try again.',
+      );
     } on FormatException {
-      throw const PatientAccessFailure('Unable to sign in. Please try again.');
+      throw const PatientAccessFailure(
+        'We couldn’t connect to Alera. Check your internet connection and try again.',
+      );
     }
   }
 }

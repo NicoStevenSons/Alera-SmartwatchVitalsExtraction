@@ -52,6 +52,9 @@ class CaregiverSessionController extends ChangeNotifier
   @override
   String? get householdCode => _session?.householdCode;
 
+  Future<HouseholdValidationResult> validateHousehold(String householdCode) =>
+      _authApi.validateHousehold(householdCode: householdCode);
+
   Future<void> _serialize(Future<void> Function() operation) {
     final result = _storageWork.then((_) => operation());
     _storageWork = result.then<void>(
@@ -107,15 +110,9 @@ class CaregiverSessionController extends ChangeNotifier
     );
   }
 
-  Future<void> accessPatient({
-    required String householdCode,
-    required String accessCode,
-  }) async {
+  Future<void> accessPatient({required String accessCode}) async {
     final revision = ++_revision;
-    final token = await _patientAuthApi.access(
-      householdCode: householdCode,
-      accessCode: accessCode,
-    );
+    final token = await _patientAuthApi.access(accessCode: accessCode);
     await _accept(StoredSession(token, SessionType.elderlyPatient), revision);
   }
 
