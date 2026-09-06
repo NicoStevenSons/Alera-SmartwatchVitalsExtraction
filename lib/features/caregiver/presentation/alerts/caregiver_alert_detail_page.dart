@@ -304,31 +304,25 @@ class _CaregiverAlertDetailPageState extends State<CaregiverAlertDetailPage> {
         'Unknown patient';
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        leadingWidth: 56,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.chevron_left, size: 28),
+          color: const Color(0xFFB4AEC2),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
-            SizedBox(
-              height: 56,
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  const Expanded(
-                    child: Center(
-                      child: Text('Alert', style: AleraTypography.pageTitle),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Menu',
-                    onPressed: () => _mock('Menu'),
-                    icon: const Icon(Icons.menu),
-                  ),
-                ],
-              ),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),

@@ -35,16 +35,14 @@ class CaregiverAlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool critical = alert.severity == CaregiverAlertSeverity.critical;
     final Color stripe = critical ? AleraColors.critical : AleraColors.warning;
-    final String iconPath = critical
-        ? 'alera-figma-assets/assets/icons/status/critical.svg'
-        : switch (alert.metric) {
-            CaregiverAlertMetric.heartRate =>
-              'alera-figma-assets/assets/icons/mini_status/heart_rate.svg',
-            CaregiverAlertMetric.spo2 =>
-              'alera-figma-assets/assets/icons/mini_status/spo2.svg',
-            CaregiverAlertMetric.watchBattery =>
-              'alera-figma-assets/assets/icons/mini_status/info.svg',
-          };
+    final String iconPath = switch (alert.metric) {
+      CaregiverAlertMetric.heartRate =>
+        'alera-figma-assets/assets/icons/vitals/heart_rate.svg',
+      CaregiverAlertMetric.spo2 =>
+        'alera-figma-assets/assets/icons/vitals/spo2.svg',
+      CaregiverAlertMetric.watchBattery =>
+        'alera-figma-assets/assets/icons/status/info.svg',
+    };
     final String name = patientName ?? 'Unknown patient';
     final _AlertCardDisplayData displayData = _buildDisplayData(
       alert,
@@ -86,21 +84,18 @@ class CaregiverAlertCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE4E6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
+                      SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Center(
                           child: AleraSvgIcon(
                             assetPath: iconPath,
-                            width: 28,
-                            height: 28,
+                            width: 56,
+                            height: 56,
                             semanticLabel: alert.title,
                           ),
                         ),
+                      ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../design_system/alera_colors.dart';
 import '../../../../../design_system/alera_typography.dart';
 import '../../../../../design_system/widgets/alera_card.dart';
 import '../../../../../design_system/widgets/alera_svg_icon.dart';
@@ -35,38 +36,16 @@ class HomeHealthSummary extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                careRecipient.backendBacked
-                    ? careRecipient.monitoringStatusLabel
-                    : careRecipient.status == CareStatus.stable
-                    ? 'Stable'
-                    : 'Needs Attention',
+                _statusTitle(careRecipient.status),
                 style: AleraTypography.sectionTitle.copyWith(fontSize: 17),
               ),
             ],
           ),
           const SizedBox(height: 2),
           Text(
-            careRecipient.backendBacked
-                ? _backendStatusDescription(careRecipient)
-                : careRecipient.status == CareStatus.stable
-                ? 'All vitals within normal range'
-                : 'Review the latest alerts and vital readings',
+            _statusDescription(careRecipient.status),
             style: AleraTypography.body.copyWith(fontSize: 11),
           ),
-          if (careRecipient.backendBacked) ...[
-            const SizedBox(height: 5),
-            Text(
-              '${careRecipient.alertCount} active alert${careRecipient.alertCount == 1 ? '' : 's'}'
-              '${snapshot.highestActiveAlertSeverity == null ? '' : ' • Highest severity: ${snapshot.highestActiveAlertSeverity}'}',
-              style: AleraTypography.body.copyWith(fontSize: 11),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              'Device: ${snapshot.deviceConnectionLabel ?? 'Not reported'}'
-              '${snapshot.lastDeviceSyncAt == null ? ' • Last sync: No data' : ' • Last sync: ${snapshot.lastDeviceSyncAt!.toLocal()}'}',
-              style: AleraTypography.body.copyWith(fontSize: 11),
-            ),
-          ],
           const SizedBox(height: 9),
           Row(
             children: [
@@ -75,8 +54,9 @@ class HomeHealthSummary extends StatelessWidget {
                   assetPath:
                       'alera-figma-assets/assets/icons/vitals/heart_rate.svg',
                   label: snapshot.heartRateBpm == null
-                      ? 'Heart rate: No data'
-                      : '${snapshot.heartRateBpm} ${snapshot.heartRateUnit ?? 'bpm'}${_recordedSuffix(snapshot.heartRateRecordedAt)}',
+                      ? 'No data'
+                      : '${snapshot.heartRateBpm} ${snapshot.heartRateUnit ?? 'bpm'}',
+                  timestamp: _timestamp(snapshot.heartRateRecordedAt),
                   color: const Color(0xFFFF7192),
                   onTap: () => onMetricTap('Heart Rate'),
                 ),
@@ -85,8 +65,9 @@ class HomeHealthSummary extends StatelessWidget {
                 child: _Metric(
                   assetPath: 'alera-figma-assets/assets/icons/vitals/spo2.svg',
                   label: snapshot.spo2Percent == null
-                      ? 'SpO₂: No data'
-                      : '${snapshot.spo2Percent!.toStringAsFixed(0)}${snapshot.spo2Unit ?? '%'}${_recordedSuffix(snapshot.spo2RecordedAt)}',
+                      ? 'No data'
+                      : '${snapshot.spo2Percent!.toStringAsFixed(0)}${snapshot.spo2Unit ?? '%'}',
+                  timestamp: _timestamp(snapshot.spo2RecordedAt),
                   color: const Color(0xFF9378F1),
                   onTap: () => onMetricTap('SpO2'),
                 ),
@@ -127,33 +108,42 @@ class HomeHealthSummary extends StatelessWidget {
     );
   }
 
-  String _recordedSuffix(DateTime? value) =>
-      value == null ? '' : ' • ${_time(value.toLocal())}';
+  String _timestamp(DateTime? value) =>
+      value == null ? 'Unavailable' : _time(value.toLocal());
 
   String _time(DateTime value) =>
       '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 
-  String _backendStatusDescription(CareRecipient patient) =>
-      switch (patient.status) {
-        CareStatus.critical => 'Critical active health alert',
-        CareStatus.warning => 'Warning active health alert',
-        CareStatus.stable => 'Latest accepted readings are stable',
-        CareStatus.noData => 'No accepted heart rate or SpO₂ data yet',
-        CareStatus.unknown => 'Status reported by the patient service',
-        CareStatus.needsAttention =>
-          'Review the latest alerts and vital readings',
-      };
+  String _statusDescription(CareStatus status) => switch (status) {
+    CareStatus.stable => 'Everything looks steady right now.',
+    CareStatus.warning => 'One or more readings need a closer look.',
+    CareStatus.critical => 'Immediate attention may be needed.',
+    CareStatus.needsAttention => 'Something may need follow-up.',
+    CareStatus.noData => 'No recent readings are available yet.',
+    CareStatus.unknown => 'We’re checking the latest health information.',
+  };
+
+  String _statusTitle(CareStatus status) => switch (status) {
+    CareStatus.stable => 'Stable',
+    CareStatus.warning => 'Warning',
+    CareStatus.critical => 'Critical',
+    CareStatus.needsAttention => 'Needs Attention',
+    CareStatus.noData => 'No Data',
+    CareStatus.unknown => 'Unknown',
+  };
 }
 
 class _Metric extends StatelessWidget {
   final String assetPath;
   final String label;
+  final String? timestamp;
   final Color color;
   final VoidCallback onTap;
 
   const _Metric({
     required this.assetPath,
     required this.label,
+    this.timestamp,
     required this.color,
     required this.onTap,
   });
@@ -189,16 +179,41 @@ class _Metric extends StatelessWidget {
                   semanticLabel: label,
                 ),
                 const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                Expanded(
+                  child: timestamp == null
+                      ? Text(
+                          label,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              timestamp!,
+                              style: const TextStyle(
+                                color: AleraColors.textSecondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ),

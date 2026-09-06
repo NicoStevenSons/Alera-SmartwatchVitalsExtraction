@@ -10,6 +10,7 @@ import '../../domain/models/caregiver_alert.dart';
 import '../../data/api/caregiver_alert_api_data_source.dart';
 import '../../data/alerts/caregiver_alert_controller.dart';
 import '../widgets/caregiver_alert_card.dart';
+import '../widgets/caregiver_page_app_bar.dart';
 
 enum AlertFilter { warning, critical, heartRate, spo2, unacknowledged }
 
@@ -180,168 +181,172 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
         .where((alert) => alert.status != CaregiverAlertStatus.active)
         .toList();
 
-    return Column(
-      children: [
-        Container(
-          color: AleraColors.surface,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text('Alerts', style: AleraTypography.pageTitle),
-              ),
-              IconButton(
-                tooltip: 'Filter alerts',
-                color: AleraColors.primarySoft,
-                icon: const Icon(Icons.filter_list),
-                onPressed: () => _showDetailMessage(context),
-              ),
-            ],
+    return Scaffold(
+      appBar: CaregiverPageAppBar(
+        title: 'Alerts',
+        actions: [
+          caregiverPageAction(
+            tooltip: 'Filter alerts',
+            onPressed: () => _showDetailMessage(context),
+            icon: Icons.filter_list,
           ),
-        ),
-        // Change height from 58 to 66 (or higher depending on added padding)
-        SizedBox(
-          height: 66,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            // Add top padding here (e.g., top: 16)
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            children: [
-              _FilterChip(
-                label: 'Warning',
-                filter: AlertFilter.warning,
-                assetPath: 'alera-figma-assets/assets/icons/status/warning.svg',
-                selected: _filters.contains(AlertFilter.warning),
-                onTap: _toggleFilter,
-              ),
-              _FilterChip(
-                label: 'Critical',
-                filter: AlertFilter.critical,
-                assetPath:
-                    'alera-figma-assets/assets/icons/status/critical.svg',
-                selected: _filters.contains(AlertFilter.critical),
-                onTap: _toggleFilter,
-              ),
-              _FilterChip(
-                label: 'HR',
-                filter: AlertFilter.heartRate,
-                assetPath:
-                    'alera-figma-assets/assets/icons/mini_status/heart_rate.svg',
-                selected: _filters.contains(AlertFilter.heartRate),
-                onTap: _toggleFilter,
-              ),
-              _FilterChip(
-                label: 'SpO2',
-                filter: AlertFilter.spo2,
-                assetPath:
-                    'alera-figma-assets/assets/icons/mini_status/spo2.svg',
-                selected: _filters.contains(AlertFilter.spo2),
-                onTap: _toggleFilter,
-              ),
-              _FilterChip(
-                label: 'Unacknowledged',
-                filter: AlertFilter.unacknowledged,
-                assetPath: 'alera-figma-assets/assets/icons/status/info.svg',
-                selected: _filters.contains(AlertFilter.unacknowledged),
-                onTap: _toggleFilter,
-              ),
-            ],
-          ),
-        ),
-        if (_loadFailed)
-          Material(
-            color: const Color(0xFFFFF4E5),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Live alerts unavailable. Showing fallback alerts.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _isLoading ? null : _loadAlerts,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Change height from 58 to 66 (or higher depending on added padding)
+          SizedBox(
+            height: 66,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              // Add top padding here (e.g., top: 16)
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              children: [
+                _FilterChip(
+                  label: 'Warning',
+                  filter: AlertFilter.warning,
+                  assetPath:
+                      'alera-figma-assets/assets/icons/status/warning.svg',
+                  selected: _filters.contains(AlertFilter.warning),
+                  onTap: _toggleFilter,
+                ),
+                _FilterChip(
+                  label: 'Critical',
+                  filter: AlertFilter.critical,
+                  assetPath:
+                      'alera-figma-assets/assets/icons/status/critical.svg',
+                  selected: _filters.contains(AlertFilter.critical),
+                  onTap: _toggleFilter,
+                ),
+                _FilterChip(
+                  label: 'HR',
+                  filter: AlertFilter.heartRate,
+                  assetPath:
+                      'alera-figma-assets/assets/icons/mini_status/heart_rate.svg',
+                  selected: _filters.contains(AlertFilter.heartRate),
+                  onTap: _toggleFilter,
+                ),
+                _FilterChip(
+                  label: 'SpO2',
+                  filter: AlertFilter.spo2,
+                  assetPath:
+                      'alera-figma-assets/assets/icons/mini_status/spo2.svg',
+                  selected: _filters.contains(AlertFilter.spo2),
+                  onTap: _toggleFilter,
+                ),
+                _FilterChip(
+                  label: 'Unacknowledged',
+                  filter: AlertFilter.unacknowledged,
+                  assetPath: 'alera-figma-assets/assets/icons/status/info.svg',
+                  selected: _filters.contains(AlertFilter.unacknowledged),
+                  onTap: _toggleFilter,
+                ),
+              ],
             ),
           ),
-        Expanded(
-          child: !_hasCompletedInitialLoad
-              ? const _AlertsLoadingSkeleton()
-              : AleraRefreshIndicator(
-                  onRefresh: _loadAlerts,
-                  backgroundColor: Colors
-                      .white, // Sets the circle bubble background to white
-                  child: ListView(
-                    key: const PageStorageKey<String>('caregiver-alerts-list'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    children: [
-                      _SectionCard(
-                        title: 'Active Alerts',
-                        child: active.isEmpty
-                            ? const _EmptyActiveAlerts()
-                            : Column(
-                                children: active
-                                    .map(
-                                      (alert) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 8,
-                                        ),
-                                        child: CaregiverAlertCard(
-                                          alert: alert,
-                                          patientName:
-                                              alert.patientDisplayName ??
-                                              _recipientFor(
-                                                alert.careRecipientId,
-                                              )?.name,
-                                          showPatientName: true,
-                                          unread:
-                                              alert.status ==
-                                              CaregiverAlertStatus.active,
-                                          expanded: _expandedAlertIds.contains(
-                                            alert.id,
-                                          ),
-                                          onToggleExpanded: () =>
-                                              _toggleExpanded(alert.id),
-                                          onViewMore: () =>
-                                              _handleAlertTap(context, alert),
-                                          onMarkAsSeen:
-                                              _controller.supportsActions &&
-                                                  !_controller.isBusy(alert.id)
-                                              ? () =>
-                                                    _markAsSeen(context, alert)
-                                              : null,
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                      ),
-                      const SizedBox(height: 12),
-                      _SectionCard(
-                        title: 'History',
-                        child: history.isEmpty
-                            ? const _EmptyHistory()
-                            : _GroupedHistory(
-                                alerts: history,
-                                recipientFor: _recipientFor,
-                                expandedAlertIds: _expandedAlertIds,
-                                onToggleExpanded: _toggleExpanded,
-                                onMarkAsSeen: null,
-                                onAlertTap: (alert) =>
-                                    _handleAlertTap(context, alert),
-                              ),
-                      ),
-                    ],
-                  ),
+          if (_loadFailed)
+            Material(
+              color: const Color(0xFFFFF4E5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
                 ),
-        ),
-      ],
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Live alerts unavailable. Showing fallback alerts.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _isLoading ? null : _loadAlerts,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: !_hasCompletedInitialLoad
+                ? const _AlertsLoadingSkeleton()
+                : AleraRefreshIndicator(
+                    onRefresh: _loadAlerts,
+                    backgroundColor: Colors
+                        .white, // Sets the circle bubble background to white
+                    child: ListView(
+                      key: const PageStorageKey<String>(
+                        'caregiver-alerts-list',
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      children: [
+                        _SectionCard(
+                          title: 'Active Alerts',
+                          child: active.isEmpty
+                              ? const _EmptyActiveAlerts()
+                              : Column(
+                                  children: active
+                                      .map(
+                                        (alert) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: CaregiverAlertCard(
+                                            alert: alert,
+                                            patientName:
+                                                alert.patientDisplayName ??
+                                                _recipientFor(
+                                                  alert.careRecipientId,
+                                                )?.name,
+                                            showPatientName: true,
+                                            unread:
+                                                alert.status ==
+                                                CaregiverAlertStatus.active,
+                                            expanded: _expandedAlertIds
+                                                .contains(alert.id),
+                                            onToggleExpanded: () =>
+                                                _toggleExpanded(alert.id),
+                                            onViewMore: () =>
+                                                _handleAlertTap(context, alert),
+                                            onMarkAsSeen:
+                                                _controller.supportsActions &&
+                                                    !_controller.isBusy(
+                                                      alert.id,
+                                                    )
+                                                ? () => _markAsSeen(
+                                                    context,
+                                                    alert,
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 12),
+                        _SectionCard(
+                          title: 'History',
+                          child: history.isEmpty
+                              ? const _EmptyHistory()
+                              : _GroupedHistory(
+                                  alerts: history,
+                                  recipientFor: _recipientFor,
+                                  expandedAlertIds: _expandedAlertIds,
+                                  onToggleExpanded: _toggleExpanded,
+                                  onMarkAsSeen: null,
+                                  onAlertTap: (alert) =>
+                                      _handleAlertTap(context, alert),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

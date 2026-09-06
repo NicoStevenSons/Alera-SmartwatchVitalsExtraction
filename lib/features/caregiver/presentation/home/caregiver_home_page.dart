@@ -12,6 +12,14 @@ import 'widgets/home_patient_header.dart';
 import 'widgets/home_reminders_preview.dart';
 
 class CaregiverHomePage extends StatelessWidget {
+  static const List<String> _fallbackQuickMessages = [
+    'Love you ❤️',
+    'How are you? 😊',
+    'Did you take meds? 💊',
+    'Checking in 👋',
+    'Call me 📞',
+  ];
+
   final CareRecipient careRecipient;
   final List<CaregiverAlert> alerts;
   final List<CaregiverReminder> reminders;
@@ -41,6 +49,10 @@ class CaregiverHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<String> quickMessages = careRecipient.quickMessages.isEmpty
+        ? _fallbackQuickMessages
+        : careRecipient.quickMessages;
+
     return ListView(
       key: const PageStorageKey<String>('caregiver-home-dashboard'),
       padding: EdgeInsets.zero,
@@ -68,10 +80,10 @@ class CaregiverHomePage extends StatelessWidget {
               vertical: 14,
             ),
             scrollDirection: Axis.horizontal,
-            itemCount: careRecipient.quickMessages.length,
+            itemCount: quickMessages.length,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
-              final String message = careRecipient.quickMessages[index];
+              final String message = quickMessages[index];
               return AleraPill(
                 label: message,
                 variant: AleraPillVariant.action,

@@ -20,6 +20,7 @@ import 'presentation/alerts/caregiver_alert_detail_page.dart';
 import 'presentation/patient_detail/caregiver_patient_detail_page.dart';
 import 'presentation/people/caregiver_people_page.dart';
 import 'presentation/people/add_patient_page.dart';
+import 'presentation/widgets/caregiver_page_app_bar.dart';
 import '../../services/alert_notification.dart';
 
 class CaregiverShell extends StatefulWidget {
@@ -269,9 +270,9 @@ class _CaregiverShellState extends State<CaregiverShell> {
   Widget build(BuildContext context) {
     final SystemUiOverlayStyle systemBarStyle = _selectedIndex == 0
         ? const SystemUiOverlayStyle(
-            statusBarColor: Color(0xFFB590F0),
-            statusBarIconBrightness: Brightness.light,
-            statusBarBrightness: Brightness.dark,
+            statusBarColor: Color(0xFFC3A7F5),
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
             systemStatusBarContrastEnforced: false,
           )
         : SystemUiOverlayStyle.dark.copyWith(
@@ -530,30 +531,32 @@ class _PlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AleraSpacing.large),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: AleraTypography.pageTitle),
-          if (onSignOut != null)
-            TextButton.icon(
-              onPressed: onSignOut,
-              icon: const Icon(Icons.logout),
-              label: const Text('Sign out'),
+    return Scaffold(
+      appBar: CaregiverPageAppBar(title: title),
+      body: Padding(
+        padding: const EdgeInsets.all(AleraSpacing.large),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (onSignOut != null)
+              TextButton.icon(
+                onPressed: onSignOut,
+                icon: const Icon(Icons.logout),
+                label: const Text('Sign out'),
+              ),
+            const Spacer(),
+            Center(
+              child: Text(
+                isTemporary
+                    ? 'Temporary $title placeholder'
+                    : '$title screen placeholder',
+                style: AleraTypography.body,
+                textAlign: TextAlign.center,
+              ),
             ),
-          const Spacer(),
-          Center(
-            child: Text(
-              isTemporary
-                  ? 'Temporary $title placeholder'
-                  : '$title screen placeholder',
-              style: AleraTypography.body,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const Spacer(),
-        ],
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }

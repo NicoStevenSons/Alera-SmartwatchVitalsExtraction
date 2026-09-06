@@ -7,6 +7,7 @@ import '../../../../design_system/widgets/alera_card.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../data/patients/caregiver_patient_controller.dart';
 import 'widgets/care_recipient_card.dart';
+import '../widgets/caregiver_page_app_bar.dart';
 
 class CaregiverPeoplePage extends StatelessWidget {
   final List<CareRecipient> careRecipients;
@@ -41,49 +42,29 @@ class CaregiverPeoplePage extends StatelessWidget {
   }
 
   Widget _buildPage(BuildContext context, List<CareRecipient> recipients) {
-    return Column(
-      children: [
-        Container(
-          color: AleraColors.surface,
-          padding: const EdgeInsets.fromLTRB(
-            AleraSpacing.medium,
-            4,
-            AleraSpacing.medium,
-            4,
+    return Scaffold(
+      appBar: CaregiverPageAppBar(
+        title: 'People',
+        actions: [
+          caregiverPageAction(
+            tooltip: 'Filter people',
+            onPressed: () => _showMockFeedback(
+              context,
+              'People filters are not available in the mock yet.',
+            ),
+            icon: Icons.filter_list,
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'People',
-                  style: AleraTypography.pageTitle.copyWith(fontSize: 24),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Filter people',
-                color: AleraColors.primarySoft,
-                iconSize: 26,
-                onPressed: () => _showMockFeedback(
-                  context,
-                  'People filters are not available in the mock yet.',
-                ),
-                icon: const Icon(Icons.filter_list),
-              ),
-              IconButton(
-                tooltip: 'Edit people',
-                color: AleraColors.primarySoft,
-                iconSize: 26,
-                onPressed: () => _showMockFeedback(
-                  context,
-                  'Editing people is not available in the mock yet.',
-                ),
-                icon: const Icon(Icons.edit),
-              ),
-            ],
+          caregiverPageAction(
+            tooltip: 'Edit people',
+            onPressed: () => _showMockFeedback(
+              context,
+              'Editing people is not available in the mock yet.',
+            ),
+            icon: Icons.edit,
           ),
-        ),
-        Expanded(child: _buildBody(context, recipients)),
-      ],
+        ],
+      ),
+      body: _buildBody(context, recipients),
     );
   }
 

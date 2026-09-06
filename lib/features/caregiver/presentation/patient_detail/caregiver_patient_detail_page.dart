@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../design_system/alera_colors.dart';
 import '../../../../design_system/alera_spacing.dart';
+import '../../../../design_system/widgets/alera_card.dart';
+import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
 import '../../domain/models/caregiver_reminder.dart';
@@ -42,7 +45,23 @@ class CaregiverPatientDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        leadingWidth: 56,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.chevron_left, size: 28),
+          color: const Color(0xFFB4AEC2),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
           key: ValueKey('caregiver-patient-detail-${careRecipient.id}'),
           padding: const EdgeInsets.fromLTRB(
@@ -54,8 +73,6 @@ class CaregiverPatientDetailPage extends StatelessWidget {
           children: [
             PatientDetailSummaryCard(
               careRecipient: careRecipient,
-              onBack: () => Navigator.maybePop(context),
-              onMenu: () => _showMockFeedback(context, 'Menu'),
               onAction: (action) => _showMockFeedback(context, action),
             ),
             const SizedBox(height: 12),
@@ -160,7 +177,21 @@ class _CaregiverPatientDetailLoaderPageState
     }
     final failure = _failure;
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient details')),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        leadingWidth: 56,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.chevron_left, size: 28),
+          color: const Color(0xFFB4AEC2),
+        ),
+      ),
       body: Center(
         child: failure == null
             ? const CircularProgressIndicator(
@@ -208,45 +239,60 @@ class _DashboardCounters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _Counter(
-            icon: Icons.notifications,
-            color: const Color(0xFFB48BF2),
-            value: '${careRecipient.alertCount}',
-            label: 'Alerts\nToday',
+    return AleraCard(
+      padding: EdgeInsets.zero,
+      child: Row(
+        children: [
+          Expanded(
+            child: _Counter(
+              assetPath: 'alera-figma-assets/assets/icons/status/alert.svg',
+              color: const Color(0xFFB48BF2),
+              value: '${careRecipient.alertCount}',
+              label: 'Alerts\nToday',
+            ),
           ),
-        ),
-        Expanded(
-          child: _Counter(
-            icon: Icons.schedule,
-            color: const Color(0xFF55A5FF),
-            value: '${careRecipient.reminderCount}',
-            label: 'Reminders\nToday',
+          _SummaryDivider(),
+          Expanded(
+            child: _Counter(
+              assetPath: 'alera-figma-assets/assets/icons/status/reminder.svg',
+              color: const Color(0xFF55A5FF),
+              value: '${careRecipient.reminderCount}',
+              label: 'Reminders\nToday',
+            ),
           ),
-        ),
-        const Expanded(
-          child: _Counter(
-            icon: Icons.check,
-            color: Color(0xFF08D887),
-            value: '',
-            label: 'Monitoring\nActive',
+          _SummaryDivider(),
+          const Expanded(
+            child: _Counter(
+              assetPath:
+                  'alera-figma-assets/assets/icons/mini_status/stable.svg',
+              color: Color(0xFF08D887),
+              value: '',
+              label: 'Monitoring\nActive',
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
+class _SummaryDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 36,
+    color: AleraColors.divider.withValues(alpha: 0.55),
+  );
+}
+
 class _Counter extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final Color color;
   final String value;
   final String label;
 
   const _Counter({
-    required this.icon,
+    required this.assetPath,
     required this.color,
     required this.value,
     required this.label,
@@ -266,7 +312,12 @@ class _Counter extends StatelessWidget {
               color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: AleraSvgIcon(
+              assetPath: assetPath,
+              width: 18,
+              height: 18,
+              semanticLabel: label.replaceAll('\n', ' '),
+            ),
           ),
           const SizedBox(width: 5),
           Flexible(

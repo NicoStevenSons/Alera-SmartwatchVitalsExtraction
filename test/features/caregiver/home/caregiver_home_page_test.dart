@@ -76,10 +76,16 @@ void main() {
     await controller.load();
     await tester.pump();
     expect(find.text('Backend Ada'), findsOneWidget);
+    expect(find.text('Warning'), findsOneWidget);
+    expect(
+      find.text('One or more readings need a closer look.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('81 bpm'), findsOneWidget);
     expect(find.textContaining('97%'), findsOneWidget);
-    expect(find.textContaining('Highest severity: WARNING'), findsOneWidget);
-    expect(find.textContaining('Device: Connected'), findsOneWidget);
+    expect(find.textContaining('Highest severity:'), findsNothing);
+    expect(find.textContaining('Device:'), findsNothing);
+    expect(find.text('Love you ❤️'), findsOneWidget);
     expect(find.text('Stress — mock-only'), findsOneWidget);
     expect(source.listCalls, 1);
   });

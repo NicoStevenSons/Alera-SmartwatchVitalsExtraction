@@ -48,4 +48,7 @@ flutter:
     - alera-figma-assets/assets/icons/status/
     - alera-figma-assets/assets/icons/mini_status/
     - alera-figma-assets/assets/icons/vitals/
+    - alera-figma-assets/assets/icons/vitals/cards/
+    - alera-figma-assets/assets/icons/vitals/card_icons/
     - alera-figma-assets/assets/icons/onboarding/
+    - alera-figma-assets/assets/icons/devices/
