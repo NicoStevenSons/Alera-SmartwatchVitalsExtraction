@@ -18,6 +18,8 @@ class CaregiverHomePage extends StatelessWidget {
   final VoidCallback onViewAllAlerts;
   final VoidCallback onViewAllReminders;
   final ValueChanged<CaregiverAlert> onAlertTap;
+  final ValueChanged<CaregiverAlert>? onMarkAsSeen;
+  final bool showDemoBanner;
 
   const CaregiverHomePage({
     super.key,
@@ -27,6 +29,8 @@ class CaregiverHomePage extends StatelessWidget {
     required this.onViewAllAlerts,
     required this.onViewAllReminders,
     required this.onAlertTap,
+    this.onMarkAsSeen,
+    this.showDemoBanner = false,
   });
 
   void _mock(BuildContext context, String action) {
@@ -41,6 +45,16 @@ class CaregiverHomePage extends StatelessWidget {
       key: const PageStorageKey<String>('caregiver-home-dashboard'),
       padding: EdgeInsets.zero,
       children: [
+        if (showDemoBanner)
+          Container(
+            key: const Key('home-demo-fallback'),
+            color: const Color(0xFFFFF1CC),
+            padding: const EdgeInsets.all(10),
+            child: const Text(
+              'Demo data — the patient service is currently offline.',
+              textAlign: TextAlign.center,
+            ),
+          ),
         HomePatientHeader(
           careRecipient: careRecipient,
           onCall: () => _mock(context, 'Call'),
@@ -79,9 +93,13 @@ class CaregiverHomePage extends StatelessWidget {
                 alerts: alerts,
                 onViewAll: onViewAllAlerts,
                 onAlertTap: onAlertTap,
+                onMarkAsSeen: onMarkAsSeen,
               ),
               const SizedBox(height: 12),
-              HomeInsightsCard(snapshot: careRecipient.healthSnapshot),
+              HomeInsightsCard(
+                snapshot: careRecipient.healthSnapshot,
+                backendBacked: careRecipient.backendBacked,
+              ),
               const SizedBox(height: 12),
               HomeRemindersPreview(
                 reminders: reminders,

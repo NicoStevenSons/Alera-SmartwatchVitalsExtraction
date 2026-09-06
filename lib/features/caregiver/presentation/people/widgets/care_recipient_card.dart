@@ -49,11 +49,22 @@ class CareRecipientCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
+                  if (careRecipient.addressOrRoom != null) ...[
+                    Text(
+                      careRecipient.addressOrRoom!,
+                      style: AleraTypography.body.copyWith(fontSize: 12),
+                    ),
+                    const SizedBox(height: 2),
+                  ],
                   _StatusRow(
                     assetPath: isStable
                         ? 'alera-figma-assets/assets/icons/status/stable.svg'
                         : 'alera-figma-assets/assets/icons/status/warning.svg',
-                    label: isStable ? 'Stable' : 'High Heart Rate',
+                    label: careRecipient.backendBacked
+                        ? careRecipient.monitoringStatusLabel
+                        : isStable
+                        ? 'Stable'
+                        : 'High Heart Rate',
                   ),
                   const SizedBox(height: 2),
                   _StatusRow(
@@ -63,6 +74,39 @@ class CareRecipientCard extends StatelessWidget {
                         ? 'No Alerts'
                         : '${careRecipient.alertCount} Alerts',
                   ),
+                  if (careRecipient.backendBacked) ...[
+                    const SizedBox(height: 2),
+                    _StatusRow(
+                      assetPath:
+                          'alera-figma-assets/assets/icons/vitals/heart_rate.svg',
+                      label: careRecipient.healthSnapshot.heartRateBpm == null
+                          ? 'Heart rate: No data'
+                          : 'Heart rate: ${careRecipient.healthSnapshot.heartRateBpm} bpm',
+                    ),
+                    const SizedBox(height: 2),
+                    _StatusRow(
+                      assetPath:
+                          'alera-figma-assets/assets/icons/vitals/spo2.svg',
+                      label: careRecipient.healthSnapshot.spo2Percent == null
+                          ? 'SpO₂: No data'
+                          : 'SpO₂: ${careRecipient.healthSnapshot.spo2Percent!.toStringAsFixed(0)}%',
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      careRecipient.healthSnapshot.hasLastCheckIn
+                          ? 'Last check-in: ${careRecipient.healthSnapshot.lastCheckIn.toLocal()}'
+                          : 'Last check-in: No data',
+                      style: AleraTypography.body.copyWith(fontSize: 12),
+                    ),
+                    if (careRecipient.healthSnapshot.deviceConnectionLabel !=
+                        null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Device: ${careRecipient.healthSnapshot.deviceConnectionLabel}',
+                        style: AleraTypography.body.copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ],
                   const SizedBox(height: 2),
                   _StatusRow(
                     assetPath:

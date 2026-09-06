@@ -75,8 +75,8 @@ class CaregiverAlertDto {
         'ACTIVE' => CaregiverAlertStatus.active,
         'ACKNOWLEDGED' => CaregiverAlertStatus.acknowledged,
         'RESOLVED' => CaregiverAlertStatus.resolved,
-        // Expand the domain enum when lifecycle UI supports these statuses.
-        'FALSE_ALARM' || 'ARCHIVED' => CaregiverAlertStatus.resolved,
+        'FALSE_ALARM' => CaregiverAlertStatus.falseAlarm,
+        'ARCHIVED' => CaregiverAlertStatus.resolved,
         _ => throw FormatException('Unsupported alert status: $status'),
       },
       reading: readingValue ?? 0,

@@ -83,7 +83,9 @@ class PatientDetailSummaryCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '◷ Last Check-in: ${_formatTime(careRecipient.healthSnapshot.lastCheckIn)}',
+                          careRecipient.healthSnapshot.hasLastCheckIn
+                              ? '◷ Last Check-in: ${_formatTime(careRecipient.healthSnapshot.lastCheckIn)}'
+                              : '◷ Last Check-in: No data yet',
                           style: AleraTypography.body.copyWith(fontSize: 12),
                         ),
                       ],

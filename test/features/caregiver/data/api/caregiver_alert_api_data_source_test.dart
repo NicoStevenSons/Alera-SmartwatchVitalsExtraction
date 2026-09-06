@@ -169,7 +169,7 @@ void main() {
 
     expect(alert.metric, CaregiverAlertMetric.spo2);
     expect(alert.severity, CaregiverAlertSeverity.critical);
-    expect(alert.status, CaregiverAlertStatus.resolved);
+    expect(alert.status, CaregiverAlertStatus.falseAlarm);
     expect(alert.reading, 88.5);
     expect(alert.threshold, 92);
     expect(alert.unit, '%');
@@ -226,6 +226,97 @@ void main() {
 
     await expectLater(
       source.fetchAlerts(),
+      throwsA(isA<CaregiverAlertsAuthFailure>()),
+    );
+    expect(session.cleared, isTrue);
+    expect(session.accessToken, isNull);
+  });
+
+  final actionCases =
+      <
+        ({
+          String path,
+          Map<String, Object> body,
+          Future<CaregiverAlert> Function(CaregiverAlertApiDataSource) invoke,
+        })
+      >[
+        (
+          path: '/api/v1/alerts/alert-1/acknowledge',
+          body: {'note': 'Seen'},
+          invoke: (source) => source.acknowledge('alert-1', note: ' Seen '),
+        ),
+        (
+          path: '/api/v1/alerts/alert-1/resolve',
+          body: <String, Object>{},
+          invoke: (source) => source.resolve('alert-1'),
+        ),
+        (
+          path: '/api/v1/alerts/alert-1/false-alarm',
+          body: {'reason': 'Sensor moved'},
+          invoke: (source) =>
+              source.markFalseAlarm('alert-1', ' Sensor moved '),
+        ),
+        (
+          path: '/api/v1/alerts/alert-1/notes',
+          body: {'note': 'Called patient'},
+          invoke: (source) => source.addNote('alert-1', ' Called patient '),
+        ),
+        (
+          path: '/api/v1/alerts/alert-1/interventions',
+          body: {
+            'intervention_type': 'PATIENT_CHECK',
+            'note': 'Patient responded',
+          },
+          invoke: (source) => source.logIntervention(
+            'alert-1',
+            CaregiverInterventionType.patientCheck,
+            ' Patient responded ',
+          ),
+        ),
+      ];
+
+  for (final actionCase in actionCases) {
+    test('action POST ${actionCase.path} sends bearer and body', () async {
+      final source = CaregiverAlertApiDataSource(
+        session: _FakeSession('caregiver-token'),
+        client: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.path, actionCase.path);
+          expect(request.headers['authorization'], 'Bearer caregiver-token');
+          expect(jsonDecode(request.body), actionCase.body);
+          return http.Response(
+            jsonEncode({
+              'alert': _alertJson(
+                alertId: 'alert-1',
+                conditionKey: 'HR_HIGH',
+                metricType: 'HEART_RATE',
+                severity: 'WARNING',
+                status: 'ACKNOWLEDGED',
+                reading: 120,
+                unit: 'BPM',
+                threshold: 100,
+              ),
+              'action': null,
+              'idempotent': true,
+            }),
+            200,
+          );
+        }),
+      );
+      final updated = await actionCase.invoke(source);
+      expect(updated.id, 'alert-1');
+      expect(updated.status, CaregiverAlertStatus.acknowledged);
+    });
+  }
+
+  test('401 during an action clears the caregiver session', () async {
+    final session = _FakeSession('expired');
+    final source = CaregiverAlertApiDataSource(
+      session: session,
+      client: MockClient((_) async => http.Response('', 401)),
+    );
+    await expectLater(
+      source.resolve('alert-1'),
       throwsA(isA<CaregiverAlertsAuthFailure>()),
     );
     expect(session.cleared, isTrue);

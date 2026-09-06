@@ -242,6 +242,7 @@ _AlertCardDisplayData _buildDisplayData(
             : 'Elevated',
       CaregiverAlertStatus.acknowledged => 'Acknowledged',
       CaregiverAlertStatus.resolved => 'Resolved',
+      CaregiverAlertStatus.falseAlarm => 'False alarm',
     },
     reason: alert.description.isEmpty ? 'Not specified' : alert.description,
     relativeTime: CaregiverAlertCard._relativeTime(alert.detectedAt),

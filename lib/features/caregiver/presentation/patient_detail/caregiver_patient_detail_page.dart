@@ -4,6 +4,8 @@ import '../../../../design_system/alera_spacing.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
 import '../../domain/models/caregiver_reminder.dart';
+import '../../data/api/caregiver_patient_api_data_source.dart';
+import '../../data/patients/caregiver_patient_controller.dart';
 import 'widgets/care_status_card.dart';
 import 'widgets/patient_alert_history.dart';
 import 'widgets/patient_reminders_section.dart';
@@ -18,6 +20,7 @@ class CaregiverPatientDetailPage extends StatelessWidget {
   final VoidCallback onViewAllAlerts;
   final VoidCallback onViewAllReminders;
   final ValueChanged<CaregiverAlert> onAlertTap;
+  final ValueChanged<CaregiverAlert>? onMarkAsSeen;
 
   const CaregiverPatientDetailPage({
     super.key,
@@ -27,6 +30,7 @@ class CaregiverPatientDetailPage extends StatelessWidget {
     required this.onViewAllAlerts,
     required this.onViewAllReminders,
     required this.onAlertTap,
+    this.onMarkAsSeen,
   });
 
   void _showMockFeedback(BuildContext context, String action) {
@@ -67,6 +71,7 @@ class CaregiverPatientDetailPage extends StatelessWidget {
               alerts: alerts,
               onViewAll: onViewAllAlerts,
               onAlertTap: onAlertTap,
+              onMarkAsSeen: onMarkAsSeen,
             ),
             const SizedBox(height: 12),
             PatientVitalSummarySection(
@@ -82,6 +87,115 @@ class CaregiverPatientDetailPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class CaregiverPatientDetailLoaderPage extends StatefulWidget {
+  final String patientId;
+  final CaregiverPatientController controller;
+  final List<CaregiverAlert> alerts;
+  final List<CaregiverReminder> reminders;
+  final VoidCallback onViewAllAlerts;
+  final VoidCallback onViewAllReminders;
+  final ValueChanged<CaregiverAlert> onAlertTap;
+  final ValueChanged<CaregiverAlert>? onMarkAsSeen;
+
+  const CaregiverPatientDetailLoaderPage({
+    super.key,
+    required this.patientId,
+    required this.controller,
+    required this.alerts,
+    required this.reminders,
+    required this.onViewAllAlerts,
+    required this.onViewAllReminders,
+    required this.onAlertTap,
+    this.onMarkAsSeen,
+  });
+
+  @override
+  State<CaregiverPatientDetailLoaderPage> createState() =>
+      _CaregiverPatientDetailLoaderPageState();
+}
+
+class _CaregiverPatientDetailLoaderPageState
+    extends State<CaregiverPatientDetailLoaderPage> {
+  CareRecipient? _patient;
+  CaregiverPatientApiFailure? _failure;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _patient = null;
+      _failure = null;
+    });
+    try {
+      final detail = await widget.controller.loadDetail(widget.patientId);
+      if (mounted) {
+        setState(() => _patient = patientDetailToCareRecipient(detail));
+      }
+    } on CaregiverPatientApiFailure catch (failure) {
+      if (mounted) setState(() => _failure = failure);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_patient != null) {
+      return CaregiverPatientDetailPage(
+        careRecipient: _patient!,
+        alerts: widget.alerts,
+        reminders: widget.reminders,
+        onViewAllAlerts: widget.onViewAllAlerts,
+        onViewAllReminders: widget.onViewAllReminders,
+        onAlertTap: widget.onAlertTap,
+        onMarkAsSeen: widget.onMarkAsSeen,
+      );
+    }
+    final failure = _failure;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Patient details')),
+      body: Center(
+        child: failure == null
+            ? const CircularProgressIndicator(
+                key: Key('patient-detail-loading'),
+              )
+            : Column(
+                key: Key(
+                  failure.kind == CaregiverPatientFailureKind.notFound
+                      ? 'patient-detail-not-found'
+                      : 'patient-detail-error',
+                ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    failure.kind == CaregiverPatientFailureKind.notFound
+                        ? Icons.person_off_outlined
+                        : Icons.error_outline,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    failure.kind == CaregiverPatientFailureKind.notFound
+                        ? 'Patient not found.'
+                        : failure.message,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (failure.kind !=
+                          CaregiverPatientFailureKind.unauthorized &&
+                      failure.kind !=
+                          CaregiverPatientFailureKind.forbidden) ...[
+                    const SizedBox(height: 12),
+                    FilledButton(onPressed: _load, child: const Text('Retry')),
+                  ],
+                ],
+              ),
       ),
     );
   }

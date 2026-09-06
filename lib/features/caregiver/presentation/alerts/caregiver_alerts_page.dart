@@ -8,6 +8,7 @@ import '../../../../design_system/widgets/alera_svg_icon.dart';
 import '../../domain/models/care_recipient.dart';
 import '../../domain/models/caregiver_alert.dart';
 import '../../data/api/caregiver_alert_api_data_source.dart';
+import '../../data/alerts/caregiver_alert_controller.dart';
 import '../widgets/caregiver_alert_card.dart';
 
 enum AlertFilter { warning, critical, heartRate, spo2, unacknowledged }
@@ -17,6 +18,7 @@ class CaregiverAlertsPage extends StatefulWidget {
   final List<CareRecipient> careRecipients;
   final ValueChanged<CaregiverAlert>? onAlertTap;
   final CaregiverAlertDataSource? alertDataSource;
+  final CaregiverAlertController? controller;
 
   const CaregiverAlertsPage({
     super.key,
@@ -24,6 +26,7 @@ class CaregiverAlertsPage extends StatefulWidget {
     required this.careRecipients,
     this.onAlertTap,
     this.alertDataSource,
+    this.controller,
   });
 
   @override
@@ -34,6 +37,8 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   final Set<AlertFilter> _filters = <AlertFilter>{};
   final Set<String> _expandedAlertIds = <String>{};
   late final CaregiverAlertDataSource _alertDataSource;
+  late final CaregiverAlertController _controller;
+  late final bool _ownsController;
   late List<CaregiverAlert> _displayedAlerts;
   bool _hasCompletedInitialLoad = false;
   bool _loadFailed = false;
@@ -43,59 +48,40 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
   void initState() {
     super.initState();
     _alertDataSource = widget.alertDataSource ?? CaregiverAlertApiDataSource();
+    _ownsController = widget.controller == null;
+    _controller =
+        widget.controller ??
+        CaregiverAlertController(
+          loader: _alertDataSource,
+          actions: _alertDataSource is CaregiverAlertActionDataSource
+              ? _alertDataSource as CaregiverAlertActionDataSource
+              : null,
+          fallback: widget.alerts,
+        );
+    _controller.addListener(_syncController);
     _displayedAlerts = const [];
     _loadAlerts();
   }
 
+  @override
+  void dispose() {
+    _controller.removeListener(_syncController);
+    if (_ownsController) _controller.dispose();
+    super.dispose();
+  }
+
+  void _syncController() {
+    if (!mounted) return;
+    setState(() {
+      _displayedAlerts = _controller.alerts;
+      _hasCompletedInitialLoad = _controller.hasLoaded;
+      _loadFailed = _controller.showingFallback;
+      _isLoading = _controller.loading;
+    });
+  }
+
   Future<void> _loadAlerts() async {
-    if (_isLoading) return;
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final List<CaregiverAlert> liveAlerts = await _alertDataSource
-          .fetchAlerts();
-      if (!mounted) return;
-      setState(() {
-        _displayedAlerts = liveAlerts;
-        _hasCompletedInitialLoad = true;
-        _loadFailed = false;
-      });
-    } on CaregiverAlertsAuthFailure {
-      _showNoFallback();
-    } on CaregiverAlertsTimeoutFailure {
-      _showFallback();
-    } on CaregiverAlertsRequestFailure {
-      _showFallback();
-    } on CaregiverAlertsHttpFailure catch (error) {
-      if (error.statusCode >= 500) {
-        _showFallback();
-      } else {
-        _showNoFallback();
-      }
-    } catch (_) {
-      _showNoFallback();
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showNoFallback() {
-    if (!mounted) return;
-    setState(() {
-      _displayedAlerts = const [];
-      _hasCompletedInitialLoad = true;
-      _loadFailed = false;
-    });
-  }
-
-  void _showFallback() {
-    if (!mounted) return;
-    setState(() {
-      _displayedAlerts = widget.alerts;
-      _hasCompletedInitialLoad = true;
-      _loadFailed = true;
-    });
+    await _controller.load();
   }
 
   void _toggleExpanded(String alertId) {
@@ -164,12 +150,22 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
     _showDetailMessage(context);
   }
 
-  void _showMarkAsSeen(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Mark as Seen is mock-only for now.')),
-      );
+  Future<void> _markAsSeen(BuildContext context, CaregiverAlert alert) async {
+    if (_controller.isBusy(alert.id) ||
+        alert.status != CaregiverAlertStatus.active) {
+      return;
+    }
+    try {
+      await _controller.acknowledge(alert.id);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('We couldn’t update this alert. Please try again.'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -314,8 +310,12 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
                                               _toggleExpanded(alert.id),
                                           onViewMore: () =>
                                               _handleAlertTap(context, alert),
-                                          onMarkAsSeen: () =>
-                                              _showMarkAsSeen(context),
+                                          onMarkAsSeen:
+                                              _controller.supportsActions &&
+                                                  !_controller.isBusy(alert.id)
+                                              ? () =>
+                                                    _markAsSeen(context, alert)
+                                              : null,
                                         ),
                                       ),
                                     )
@@ -332,7 +332,7 @@ class _CaregiverAlertsPageState extends State<CaregiverAlertsPage> {
                                 recipientFor: _recipientFor,
                                 expandedAlertIds: _expandedAlertIds,
                                 onToggleExpanded: _toggleExpanded,
-                                onMarkAsSeen: () => _showMarkAsSeen(context),
+                                onMarkAsSeen: null,
                                 onAlertTap: (alert) =>
                                     _handleAlertTap(context, alert),
                               ),
@@ -595,7 +595,7 @@ class _GroupedHistory extends StatelessWidget {
   final ValueChanged<CaregiverAlert> onAlertTap;
   final Set<String> expandedAlertIds;
   final ValueChanged<String> onToggleExpanded;
-  final VoidCallback onMarkAsSeen;
+  final VoidCallback? onMarkAsSeen;
 
   const _GroupedHistory({
     required this.alerts,

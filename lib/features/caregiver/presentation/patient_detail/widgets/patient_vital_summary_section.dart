@@ -28,8 +28,8 @@ class PatientVitalSummarySection extends StatelessWidget {
               Expanded(
                 child: _VitalTile(
                   label: 'Heart Rate',
-                  value: snapshot.heartRateBpm?.toString() ?? '--',
-                  unit: 'bpm',
+                  value: snapshot.heartRateBpm?.toString() ?? 'No data yet',
+                  unit: snapshot.heartRateBpm == null ? '' : 'bpm',
                   icon: Icons.monitor_heart,
                   foreground: const Color(0xFFC51B50),
                   background: const Color(0xFFFFD9DF),
@@ -40,8 +40,9 @@ class PatientVitalSummarySection extends StatelessWidget {
               Expanded(
                 child: _VitalTile(
                   label: 'SpO2',
-                  value: snapshot.spo2Percent?.toStringAsFixed(0) ?? '--',
-                  unit: '%',
+                  value:
+                      snapshot.spo2Percent?.toStringAsFixed(0) ?? 'No data yet',
+                  unit: snapshot.spo2Percent == null ? '' : '%',
                   icon: Icons.water_drop,
                   foreground: const Color(0xFF493BC5),
                   background: const Color(0xFFDDE4FF),
@@ -113,13 +114,17 @@ class _VitalTile extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 30,
-                      height: 1,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: foreground,
+                        fontSize: value.length > 6 ? 14 : 30,
+                        height: 1,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 3),

@@ -73,6 +73,107 @@ void main() {
     expect(result.patientId, 'patient-1');
   });
 
+  test('reads authenticated patient pagination and nullable summary', () async {
+    final source = CaregiverPatientApiDataSource(
+      session: _FakeSession(),
+      client: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.queryParameters, {'limit': '100', 'offset': '0'});
+        expect(request.headers['authorization'], 'Bearer caregiver-token');
+        return http.Response(
+          jsonEncode({
+            'items': [_listPatientJson()],
+            'total': 1,
+            'limit': 100,
+            'offset': 0,
+          }),
+          200,
+        );
+      }),
+    );
+    final page = await source.fetchPatients();
+    expect(page.total, 1);
+    expect(page.items.single.currentSummary.latestHeartRate, isNull);
+    expect(page.items.single.currentSummary.lastCheckIn, isNull);
+    expect(
+      page.items.single.currentSummary.monitoringStatus,
+      PatientMonitoringStatus.noData,
+    );
+  });
+
+  test('list reading parses Decimal number and string forms', () async {
+    final json = _listPatientJson();
+    final summary = json['current_summary'] as Map<String, dynamic>;
+    summary['latest_heart_rate'] = {
+      'value': 72.5,
+      'unit': 'bpm',
+      'recorded_at': '2026-09-06T10:00:00Z',
+    };
+    summary['latest_spo2'] = {
+      'value': '98.25',
+      'unit': '%',
+      'recorded_at': '2026-09-06T10:01:00+00:00',
+    };
+    final item = PatientListItemDto.fromJson(json);
+    expect(item.currentSummary.latestHeartRate!.value, 72.5);
+    expect(item.currentSummary.latestSpo2!.value, 98.25);
+    expect(item.currentSummary.latestSpo2!.recordedAt.isUtc, isTrue);
+  });
+
+  test(
+    '403 is authorization failure without fallback classification',
+    () async {
+      final source = CaregiverPatientApiDataSource(
+        session: _FakeSession(),
+        client: MockClient((_) async => http.Response('', 403)),
+      );
+      await expectLater(
+        source.fetchPatients(),
+        throwsA(
+          isA<CaregiverPatientApiFailure>().having(
+            (e) => e.kind,
+            'kind',
+            CaregiverPatientFailureKind.forbidden,
+          ),
+        ),
+      );
+    },
+  );
+
+  test('malformed list response is not fallback-eligible', () async {
+    final source = CaregiverPatientApiDataSource(
+      session: _FakeSession(),
+      client: MockClient((_) async => http.Response('{"items":"bad"}', 200)),
+    );
+    await expectLater(
+      source.fetchPatients(),
+      throwsA(
+        isA<CaregiverPatientApiFailure>().having(
+          (e) => e.kind,
+          'kind',
+          CaregiverPatientFailureKind.malformed,
+        ),
+      ),
+    );
+  });
+
+  test('patient detail returns typed 404', () async {
+    final source = CaregiverPatientApiDataSource(
+      session: _FakeSession(),
+      client: MockClient((_) async => http.Response('', 404)),
+    );
+    await expectLater(
+      source.fetchPatient('missing'),
+      throwsA(
+        isA<CaregiverPatientApiFailure>().having(
+          (e) => e.kind,
+          'kind',
+          CaregiverPatientFailureKind.notFound,
+        ),
+      ),
+    );
+  });
+
   test('issues one 24-hour access code for the created patient', () async {
     final source = CaregiverPatientApiDataSource(
       session: _FakeSession(),
@@ -168,6 +269,29 @@ Map<String, dynamic> _patientJson({
   'monitoring_notes': null,
   'archived_at': null,
   'created_at': '2026-09-06T10:00:00Z',
+};
+
+Map<String, dynamic> _listPatientJson() => {
+  'patient_id': 'patient-1',
+  'user_id': 'user-1',
+  'household_id': 'household-1',
+  'full_name': 'Ada',
+  'birthdate': null,
+  'sex': null,
+  'phone_number': null,
+  'address_or_room': 'Room 4',
+  'account_status': 'ACTIVE',
+  'created_at': '2026-09-06T10:00:00Z',
+  'current_summary': {
+    'latest_heart_rate': null,
+    'latest_spo2': null,
+    'last_check_in': null,
+    'active_alert_count': 0,
+    'highest_active_alert_severity': null,
+    'monitoring_status': 'NO_DATA',
+    'device_connection_status': 'NOT_CONNECTED',
+    'last_device_sync_at': null,
+  },
 };
 
 class _FakeSession implements CaregiverSession {

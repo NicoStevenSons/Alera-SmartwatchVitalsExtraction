@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../alera_colors.dart';
 import '../alera_typography.dart';
 
-enum AleraButtonVariant { primary, secondary, white }
+enum AleraButtonVariant { primary, secondary, white, pill }
 
 class AleraButton extends StatelessWidget {
   final String label;
@@ -27,8 +27,12 @@ class AleraButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool primary = variant == AleraButtonVariant.primary;
+    final bool primary =
+        variant == AleraButtonVariant.primary ||
+        variant == AleraButtonVariant.pill;
     final bool white = variant == AleraButtonVariant.white;
+    final bool pill = variant == AleraButtonVariant.pill;
+
     final ButtonStyle style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -38,6 +42,7 @@ class AleraButton extends StatelessWidget {
               ? Colors.white.withOpacity(0.55)
               : AleraColors.divider;
         }
+
         if (states.contains(WidgetState.pressed)) {
           return primary
               ? const Color(0xFF7449C9)
@@ -45,6 +50,7 @@ class AleraButton extends StatelessWidget {
               ? const Color(0xFFF4F1FA)
               : const Color(0xFFAFA6D6);
         }
+
         if (states.contains(WidgetState.hovered)) {
           return primary
               ? const Color(0xFFC3A7F5)
@@ -52,6 +58,7 @@ class AleraButton extends StatelessWidget {
               ? const Color(0xFFF8F6FC)
               : const Color(0xFFC9C2E0);
         }
+
         return primary
             ? const Color(0xFFAE8BEA)
             : white
@@ -64,6 +71,7 @@ class AleraButton extends StatelessWidget {
               ? Colors.white.withOpacity(0.70)
               : AleraColors.textSecondary.withOpacity(0.50);
         }
+
         return primary ? Colors.white : const Color(0xFF6B6385);
       }),
       minimumSize: WidgetStateProperty.all(
@@ -76,15 +84,18 @@ class AleraButton extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       elevation: WidgetStateProperty.all(0),
       shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(pill ? 20 : 8),
+        ),
       ),
       textStyle: WidgetStateProperty.all(
         AleraTypography.label.copyWith(
-          fontSize: 12,
+          fontSize: pill ? 14 : 12,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
+
     final Widget button = icon == null
         ? FilledButton(onPressed: onPressed, style: style, child: Text(label))
         : FilledButton.icon(
@@ -93,6 +104,7 @@ class AleraButton extends StatelessWidget {
             icon: Icon(icon, size: 16),
             label: Text(label),
           );
+
     return Semantics(
       button: true,
       label: semanticLabel ?? label,

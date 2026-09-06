@@ -9,8 +9,10 @@ import 'domain/repositories/caregiver_repository.dart';
 import 'domain/models/care_recipient.dart';
 import 'domain/models/caregiver_alert.dart';
 import 'data/api/caregiver_alert_api_data_source.dart';
+import 'data/alerts/caregiver_alert_controller.dart';
 import 'data/api/caregiver_patient_api_data_source.dart';
 import 'data/api/dto/patient_dto.dart';
+import 'data/patients/caregiver_patient_controller.dart';
 import 'domain/models/health_snapshot.dart';
 import 'presentation/home/caregiver_home_page.dart';
 import 'presentation/alerts/caregiver_alerts_page.dart';
@@ -24,6 +26,7 @@ class CaregiverShell extends StatefulWidget {
   final CaregiverRepository repository;
   final CaregiverAlertDataSource? alertDataSource;
   final CaregiverPatientDataSource? patientDataSource;
+  final CaregiverPatientController? patientController;
   final String? householdCode;
   final VoidCallback? onSignOut;
   final Future<CaregiverAlert> Function(String)? loadNotificationAlert;
@@ -34,6 +37,7 @@ class CaregiverShell extends StatefulWidget {
     required this.repository,
     this.alertDataSource,
     this.patientDataSource,
+    this.patientController,
     this.householdCode,
     this.onSignOut,
     this.loadNotificationAlert,
@@ -46,16 +50,40 @@ class CaregiverShell extends StatefulWidget {
 
 class _CaregiverShellState extends State<CaregiverShell> {
   int _selectedIndex = 0;
+  String? _selectedPatientId;
   void Function()? _unsubscribeNotifications;
   int _notificationRevision = 0;
   late final CareRecipient _homeCareRecipient;
   late final List<CareRecipient> _careRecipients;
+  late final CaregiverAlertController _alertController;
+  CaregiverPatientController? _patientController;
+  bool _ownsPatientController = false;
 
   @override
   void initState() {
     super.initState();
     _careRecipients = widget.repository.getCareRecipients().toList();
     _homeCareRecipient = _careRecipients.first;
+    final CaregiverAlertDataSource alertLoader =
+        widget.alertDataSource ?? _RepositoryAlertDataSource(widget.repository);
+    _alertController = CaregiverAlertController(
+      loader: alertLoader,
+      actions: alertLoader is CaregiverAlertActionDataSource
+          ? alertLoader as CaregiverAlertActionDataSource
+          : null,
+      fallback: widget.repository.getAlerts(),
+    )..addListener(_alertsChanged);
+    _alertController.load();
+    _patientController = widget.patientController;
+    final source = widget.patientDataSource;
+    if (_patientController == null &&
+        source is CaregiverPatientReadDataSource) {
+      _ownsPatientController = true;
+      _patientController = CaregiverPatientController(
+        dataSource: source as CaregiverPatientReadDataSource,
+        demoPatients: _careRecipients,
+      )..load();
+    }
     // AuthGate supplies this loader only for an active caregiver session.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || widget.loadNotificationAlert == null) return;
@@ -69,7 +97,15 @@ class _CaregiverShellState extends State<CaregiverShell> {
   @override
   void dispose() {
     _unsubscribeNotifications?.call();
+    _alertController
+      ..removeListener(_alertsChanged)
+      ..dispose();
+    if (_ownsPatientController) _patientController?.dispose();
     super.dispose();
+  }
+
+  void _alertsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _openNotificationAlert(AlertNotification event) async {
@@ -77,8 +113,10 @@ class _CaregiverShellState extends State<CaregiverShell> {
     try {
       final alert = await widget.loadNotificationAlert!(event.alertId);
       if (!mounted || revision != _notificationRevision) return;
+      _alertController.upsert(alert);
       if (alert.id.toLowerCase() != event.alertId ||
-          alert.status == CaregiverAlertStatus.resolved) {
+          alert.status == CaregiverAlertStatus.resolved ||
+          alert.status == CaregiverAlertStatus.falseAlarm) {
         _notificationUnavailable();
         return;
       }
@@ -104,13 +142,42 @@ class _CaregiverShellState extends State<CaregiverShell> {
   }
 
   void _openCareRecipient(BuildContext context, CareRecipient careRecipient) {
+    if (careRecipient.backendBacked && _patientController != null) {
+      setState(() => _selectedPatientId = careRecipient.id);
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => CaregiverPatientDetailLoaderPage(
+            patientId: careRecipient.id,
+            controller: _patientController!,
+            alerts: _alertController.alerts
+                .where((alert) => alert.careRecipientId == careRecipient.id)
+                .toList(),
+            reminders: widget.repository
+                .getReminders()
+                .where((item) => item.careRecipientId == careRecipient.id)
+                .toList(),
+            onViewAllAlerts: () {
+              Navigator.pop(context);
+              setState(() => _selectedIndex = 2);
+            },
+            onViewAllReminders: () {
+              Navigator.pop(context);
+              setState(() => _selectedIndex = 3);
+            },
+            onAlertTap: (alert) => _openAlertDetail(context, alert),
+            onMarkAsSeen: _markAsSeen,
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) => CaregiverPatientDetailPage(
           careRecipient: careRecipient,
-          alerts: widget.repository
-              .getAlerts()
+          alerts: _alertController.alerts
               .where((alert) => alert.careRecipientId == careRecipient.id)
               .toList(),
           reminders: widget.repository
@@ -126,6 +193,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
             setState(() => _selectedIndex = 3);
           },
           onAlertTap: (alert) => _openAlertDetail(context, alert),
+          onMarkAsSeen: _markAsSeen,
         ),
       ),
     );
@@ -145,7 +213,11 @@ class _CaregiverShellState extends State<CaregiverShell> {
     );
   }
 
-  void _addCreatedPatient(PatientCreatedResponse patient) {
+  Future<void> _addCreatedPatient(PatientCreatedResponse patient) async {
+    if (_patientController != null) {
+      await _patientController!.refreshAfterCreate(patient.patientId);
+      return;
+    }
     if (_careRecipients.any((item) => item.id == patient.patientId)) return;
     setState(() {
       _careRecipients.add(
@@ -184,8 +256,11 @@ class _CaregiverShellState extends State<CaregiverShell> {
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (context) =>
-            CaregiverAlertDetailPage(alert: alert, careRecipient: recipient),
+        builder: (context) => CaregiverAlertDetailPage(
+          alert: alert,
+          careRecipient: recipient,
+          alertController: _alertController,
+        ),
       ),
     );
   }
@@ -218,33 +293,10 @@ class _CaregiverShellState extends State<CaregiverShell> {
                 child: IndexedStack(
                   index: _selectedIndex,
                   children: [
-                    CaregiverHomePage(
-                      careRecipient: _homeCareRecipient,
-                      alerts: widget.repository
-                          .getAlerts()
-                          .where(
-                            (alert) =>
-                                alert.careRecipientId == _homeCareRecipient.id,
-                          )
-                          .toList(),
-                      reminders: widget.repository
-                          .getReminders()
-                          .where(
-                            (reminder) =>
-                                reminder.careRecipientId ==
-                                _homeCareRecipient.id,
-                          )
-                          .toList(),
-                      onViewAllAlerts: () {
-                        setState(() => _selectedIndex = 2);
-                      },
-                      onViewAllReminders: () {
-                        setState(() => _selectedIndex = 3);
-                      },
-                      onAlertTap: (alert) => _openAlertDetail(context, alert),
-                    ),
+                    _buildHome(context),
                     CaregiverPeoplePage(
                       careRecipients: _careRecipients,
+                      controller: _patientController,
                       onCareRecipientSelected: (careRecipient) =>
                           _openCareRecipient(context, careRecipient),
                       onAddPatient: () => _openAddPatient(context),
@@ -252,9 +304,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
                     CaregiverAlertsPage(
                       alerts: widget.repository.getAlerts(),
                       careRecipients: _careRecipients,
-                      alertDataSource:
-                          widget.alertDataSource ??
-                          _RepositoryAlertDataSource(widget.repository),
+                      controller: _alertController,
                       onAlertTap: (alert) => _openAlertDetail(context, alert),
                     ),
                     const _PlaceholderPage(
@@ -331,6 +381,131 @@ class _CaregiverShellState extends State<CaregiverShell> {
       ),
     );
   }
+
+  Future<void> _markAsSeen(CaregiverAlert alert) async {
+    if (!_alertController.supportsActions ||
+        _alertController.isBusy(alert.id) ||
+        alert.status != CaregiverAlertStatus.active) {
+      return;
+    }
+    try {
+      await _alertController.acknowledge(alert.id);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('We couldn’t update this alert. Please try again.'),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildHome(BuildContext context) {
+    final controller = _patientController;
+    if (controller == null) return _homeDashboard(context, _homeCareRecipient);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        if (controller.state == CaregiverPatientListState.initialLoading) {
+          return const Center(
+            key: Key('home-patient-loading'),
+            child: CircularProgressIndicator(),
+          );
+        }
+        if (controller.state == CaregiverPatientListState.empty) {
+          return const _HomePatientState(
+            key: Key('home-patient-empty'),
+            icon: Icons.person_search_outlined,
+            message: 'No assigned patients yet.',
+          );
+        }
+        if (controller.state == CaregiverPatientListState.error) {
+          final forbidden =
+              controller.failureKind == CaregiverPatientFailureKind.forbidden;
+          return _HomePatientState(
+            key: Key(
+              forbidden ? 'home-patient-forbidden' : 'home-patient-error',
+            ),
+            icon: forbidden ? Icons.lock_outline : Icons.cloud_off,
+            message: controller.errorMessage ?? 'Unable to load patients.',
+            actionLabel: forbidden ? null : 'Retry',
+            onAction: forbidden ? null : controller.load,
+          );
+        }
+        final patients = controller.visiblePatients;
+        if (patients.isEmpty) {
+          return const _HomePatientState(
+            icon: Icons.person_search_outlined,
+            message: 'No assigned patients yet.',
+          );
+        }
+        final selected = patients.where(
+          (patient) => patient.id == _selectedPatientId,
+        );
+        return _homeDashboard(
+          context,
+          selected.isEmpty ? patients.first : selected.first,
+          showDemo: controller.state == CaregiverPatientListState.demoFallback,
+        );
+      },
+    );
+  }
+
+  Widget _homeDashboard(
+    BuildContext context,
+    CareRecipient patient, {
+    bool showDemo = false,
+  }) => CaregiverHomePage(
+    careRecipient: patient,
+    showDemoBanner: showDemo,
+    alerts: _alertController.alerts
+        .where(
+          (alert) =>
+              alert.careRecipientId == patient.id &&
+              alert.status == CaregiverAlertStatus.active,
+        )
+        .toList(),
+    reminders: widget.repository
+        .getReminders()
+        .where((reminder) => reminder.careRecipientId == patient.id)
+        .toList(),
+    onViewAllAlerts: () => setState(() => _selectedIndex = 2),
+    onViewAllReminders: () => setState(() => _selectedIndex = 3),
+    onAlertTap: (alert) => _openAlertDetail(context, alert),
+    onMarkAsSeen: _markAsSeen,
+  );
+}
+
+class _HomePatientState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _HomePatientState({
+    super.key,
+    required this.icon,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 48),
+        const SizedBox(height: 12),
+        Text(message, textAlign: TextAlign.center),
+        if (actionLabel != null) ...[
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
+      ],
+    ),
+  );
 }
 
 class _RepositoryAlertDataSource implements CaregiverAlertDataSource {

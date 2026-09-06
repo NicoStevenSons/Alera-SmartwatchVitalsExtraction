@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +17,7 @@ import '../../data/api/dto/patient_dto.dart';
 class AddPatientPage extends StatefulWidget {
   final CaregiverPatientDataSource dataSource;
   final String? householdCode;
-  final ValueChanged<PatientCreatedResponse> onPatientCreated;
+  final FutureOr<void> Function(PatientCreatedResponse) onPatientCreated;
 
   const AddPatientPage({
     super.key,
@@ -106,7 +107,7 @@ class _AddPatientPageState extends State<AddPatientPage> {
         ),
       );
       if (!mounted) return;
-      widget.onPatientCreated(response);
+      await widget.onPatientCreated(response);
       setState(() => _created = response);
     } on CaregiverPatientApiFailure catch (failure) {
       if (mounted) setState(() => _error = failure.message);

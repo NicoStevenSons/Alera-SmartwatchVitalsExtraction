@@ -35,7 +35,9 @@ class HomeHealthSummary extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                careRecipient.status == CareStatus.stable
+                careRecipient.backendBacked
+                    ? careRecipient.monitoringStatusLabel
+                    : careRecipient.status == CareStatus.stable
                     ? 'Stable'
                     : 'Needs Attention',
                 style: AleraTypography.sectionTitle.copyWith(fontSize: 17),
@@ -44,11 +46,27 @@ class HomeHealthSummary extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            careRecipient.status == CareStatus.stable
+            careRecipient.backendBacked
+                ? _backendStatusDescription(careRecipient)
+                : careRecipient.status == CareStatus.stable
                 ? 'All vitals within normal range'
                 : 'Review the latest alerts and vital readings',
             style: AleraTypography.body.copyWith(fontSize: 11),
           ),
+          if (careRecipient.backendBacked) ...[
+            const SizedBox(height: 5),
+            Text(
+              '${careRecipient.alertCount} active alert${careRecipient.alertCount == 1 ? '' : 's'}'
+              '${snapshot.highestActiveAlertSeverity == null ? '' : ' • Highest severity: ${snapshot.highestActiveAlertSeverity}'}',
+              style: AleraTypography.body.copyWith(fontSize: 11),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Device: ${snapshot.deviceConnectionLabel ?? 'Not reported'}'
+              '${snapshot.lastDeviceSyncAt == null ? ' • Last sync: No data' : ' • Last sync: ${snapshot.lastDeviceSyncAt!.toLocal()}'}',
+              style: AleraTypography.body.copyWith(fontSize: 11),
+            ),
+          ],
           const SizedBox(height: 9),
           Row(
             children: [
@@ -56,7 +74,9 @@ class HomeHealthSummary extends StatelessWidget {
                 child: _Metric(
                   assetPath:
                       'alera-figma-assets/assets/icons/vitals/heart_rate.svg',
-                  label: '${snapshot.heartRateBpm ?? '--'} Bpm',
+                  label: snapshot.heartRateBpm == null
+                      ? 'Heart rate: No data'
+                      : '${snapshot.heartRateBpm} ${snapshot.heartRateUnit ?? 'bpm'}${_recordedSuffix(snapshot.heartRateRecordedAt)}',
                   color: const Color(0xFFFF7192),
                   onTap: () => onMetricTap('Heart Rate'),
                 ),
@@ -64,7 +84,9 @@ class HomeHealthSummary extends StatelessWidget {
               Expanded(
                 child: _Metric(
                   assetPath: 'alera-figma-assets/assets/icons/vitals/spo2.svg',
-                  label: '${snapshot.spo2Percent?.toStringAsFixed(0) ?? '--'}%',
+                  label: snapshot.spo2Percent == null
+                      ? 'SpO₂: No data'
+                      : '${snapshot.spo2Percent!.toStringAsFixed(0)}${snapshot.spo2Unit ?? '%'}${_recordedSuffix(snapshot.spo2RecordedAt)}',
                   color: const Color(0xFF9378F1),
                   onTap: () => onMetricTap('SpO2'),
                 ),
@@ -78,7 +100,9 @@ class HomeHealthSummary extends StatelessWidget {
                 child: _Metric(
                   assetPath:
                       'alera-figma-assets/assets/icons/vitals/stress.svg',
-                  label: snapshot.stressLabel,
+                  label: careRecipient.backendBacked
+                      ? 'Stress — mock-only'
+                      : snapshot.stressLabel,
                   color: const Color(0xFFFF875F),
                   onTap: () => onMetricTap('Stress'),
                 ),
@@ -87,7 +111,11 @@ class HomeHealthSummary extends StatelessWidget {
                 child: _Metric(
                   assetPath:
                       'alera-figma-assets/assets/icons/vitals/activity.svg',
-                  label: snapshot.steps == null ? 'No activity' : 'Active',
+                  label: careRecipient.backendBacked
+                      ? 'Activity — mock-only'
+                      : snapshot.steps == null
+                      ? 'No activity'
+                      : 'Active',
                   color: const Color(0xFF73C838),
                   onTap: () => onMetricTap('Activity'),
                 ),
@@ -98,6 +126,23 @@ class HomeHealthSummary extends StatelessWidget {
       ),
     );
   }
+
+  String _recordedSuffix(DateTime? value) =>
+      value == null ? '' : ' • ${_time(value.toLocal())}';
+
+  String _time(DateTime value) =>
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+  String _backendStatusDescription(CareRecipient patient) =>
+      switch (patient.status) {
+        CareStatus.critical => 'Critical active health alert',
+        CareStatus.warning => 'Warning active health alert',
+        CareStatus.stable => 'Latest accepted readings are stable',
+        CareStatus.noData => 'No accepted heart rate or SpO₂ data yet',
+        CareStatus.unknown => 'Status reported by the patient service',
+        CareStatus.needsAttention =>
+          'Review the latest alerts and vital readings',
+      };
 }
 
 class _Metric extends StatelessWidget {
