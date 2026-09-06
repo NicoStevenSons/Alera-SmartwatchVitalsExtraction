@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -43,8 +41,6 @@ class HouseholdCodeInput extends StatefulWidget {
 class _HouseholdCodeInputState extends State<HouseholdCodeInput> {
   final _fieldController = TextEditingController();
   final _focusNode = FocusNode();
-  Timer? _cursorTimer;
-  bool _cursorVisible = true;
 
   String get _rawCode => _fieldController.text.toUpperCase();
 
@@ -53,26 +49,14 @@ class _HouseholdCodeInputState extends State<HouseholdCodeInput> {
     super.initState();
     _syncFromParent();
     widget.controller.addListener(_syncFromParent);
-    _focusNode.addListener(_onFocusChanged);
-    _cursorTimer = Timer.periodic(const Duration(milliseconds: 530), (_) {
-      if (!mounted || !_focusNode.hasFocus) return;
-      setState(() => _cursorVisible = !_cursorVisible);
-    });
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_syncFromParent);
-    _focusNode.removeListener(_onFocusChanged);
-    _cursorTimer?.cancel();
     _fieldController.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  void _onFocusChanged() {
-    if (!mounted) return;
-    setState(() => _cursorVisible = _focusNode.hasFocus);
   }
 
   void _syncFromParent() {
@@ -195,12 +179,6 @@ class _HouseholdCodeInputState extends State<HouseholdCodeInput> {
 
   Widget _buildDigit(int index) {
     final value = index < _rawCode.length ? _rawCode[index] : '';
-    final showCursor =
-        widget.enabled &&
-        _focusNode.hasFocus &&
-        _cursorVisible &&
-        _rawCode.length < 8 &&
-        index == _rawCode.length.clamp(0, 7);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -212,26 +190,12 @@ class _HouseholdCodeInputState extends State<HouseholdCodeInput> {
           color: const Color(0xFFF5F0FF),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(
-              value,
-              style: AleraTypography.sectionTitle.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (showCursor)
-              Container(
-                width: 1.5,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: AleraColors.textPrimary,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-          ],
+        child: Text(
+          value,
+          style: AleraTypography.sectionTitle.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -259,10 +223,22 @@ class _CaregiverAuthGateState extends State<CaregiverAuthGate> {
   @override
   void initState() {
     super.initState();
+    @override
+    void didChangeDependencies() {
+      super.didChangeDependencies();
+
+      precacheImage(
+        const AssetImage(
+          'alera-figma-assets/assets/icons/onboarding/alera-logo.png',
+        ),
+        context,
+      );
+    } 
     _session = widget.sessionController ?? CaregiverSessionController.instance;
     _session.addListener(_onSessionChanged);
     _session.restoreSession();
   }
+  
 
   @override
   void dispose() {
@@ -362,9 +338,9 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
   final _accessCode = TextEditingController();
 
   _AuthStep _step = _AuthStep.welcome;
-  _RoleSelection _selectedRole = _RoleSelection.caregiver;
+  _RoleSelection? _selectedRole;
   bool _submitting = false;
-  bool _obscurePassword = true;
+  bool _goingBack = false;
   String? _error;
   String? _householdName;
 
@@ -381,6 +357,7 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
     if (_submitting) return;
 
     setState(() {
+      _goingBack = _stepIndex(step) < _stepIndex(_step);
       _step = step;
       if (step == _AuthStep.household) _householdName = null;
       _error = null;
@@ -389,10 +366,19 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
     });
   }
 
-  void _continueRole() {
-    if (_submitting) return;
+  int _stepIndex(_AuthStep step) => switch (step) {
+        _AuthStep.welcome => 0,
+        _AuthStep.role => 1,
+        _AuthStep.household || _AuthStep.patientOptions => 2,
+        _AuthStep.caregiver || _AuthStep.patientManual => 3,
+      };
 
-    if (_selectedRole == _RoleSelection.caregiver) {
+  void _continueRole() {
+    final selectedRole = _selectedRole;
+
+    if (_submitting || selectedRole == null) return;
+
+    if (selectedRole == _RoleSelection.caregiver) {
       _go(_AuthStep.household);
     } else {
       _go(_AuthStep.patientOptions);
@@ -496,10 +482,11 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SvgPicture.asset(
-                              'alera-figma-assets/assets/icons/onboarding/alera-logo.svg',
+                            Image.asset(
+                              'alera-figma-assets/assets/icons/onboarding/alera-logo.png',
                               width: isCompact ? 220 : 250,
                               fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
                             ),
                             SizedBox(height: isCompact ? 36 : 50),
                             Text(
@@ -610,142 +597,25 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
     );
   }
 
-  Widget _backButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: IconButton(
+  PreferredSizeWidget _authAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      leadingWidth: 56,
+      leading: IconButton(
+        tooltip: 'Back',
         onPressed: _submitting ? null : _back,
         icon: const Icon(Icons.chevron_left, size: 28),
         color: const Color(0xFFB4AEC2),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
       ),
     );
   }
 
-  Widget _authTextField({
-    required Key key,
-    required TextEditingController controller,
-    required String label,
-    required String hintText,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-    ValueChanged<String>? onFieldSubmitted,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AleraTypography.label.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          key: key,
-          controller: controller,
-          enabled: !_submitting,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          autocorrect: false,
-          enableSuggestions: !obscureText,
-          validator: validator,
-          onFieldSubmitted: onFieldSubmitted,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: Color(0xFFB5A6DB)),
-            filled: true,
-            fillColor: const Color(0xFFF7F3FF),
-            suffixIcon: suffixIcon,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE0D6F5)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AleraColors.primary,
-                width: 1.5,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AleraColors.critical),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AleraColors.critical,
-                width: 1.5,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _householdSummary() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 58,
-          height: 58,
-          child: SvgPicture.asset(
-            'alera-figma-assets/assets/icons/onboarding/household-icon.svg',
-            fit: BoxFit.contain,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Household code:',
-              style: AleraTypography.label.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _household.text,
-              key: const Key('selected-household'),
-              style: AleraTypography.label.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        TextButton(
-          onPressed: _submitting ? null : () => _go(_AuthStep.household),
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFFEDE7F8),
-            foregroundColor: AleraColors.textSecondary,
-            minimumSize: const Size(46, 32),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text('Edit'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRoleStep(String title) {
+  Widget _buildPatientOptions() {
     return Column(
       children: [
         Expanded(
@@ -754,102 +624,70 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _backButton(),
-                const SizedBox(height: 42),
+                const SizedBox(height: 162),
                 Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: AleraTypography.sectionTitle.copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 30),
-                _roleCard(
-                  role: _RoleSelection.caregiver,
-                  title: 'I’m a Caregiver',
-                  description: 'Monitor and support the\npeople assigned to your care.',
-                  asset:
-                      'alera-figma-assets/assets/icons/onboarding/caregiver-role.svg',
-                ),
-                const SizedBox(height: 20),
-                _roleCard(
-                  role: _RoleSelection.patient,
-                  title: 'I’m a Patient',
-                  description: 'View your personal health\nand connection status.',
-                  asset:
-                      'alera-figma-assets/assets/icons/onboarding/patient-role.svg',
-                ),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
-          child: AleraButton(
-            label: 'Continue',
-            onPressed: _continueRole,
-            variant: AleraButtonVariant.pill,
-            height: 40,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHouseholdStep() {
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-            child: Column(
-              children: [
-                _backButton(),
-                const SizedBox(height: 58),
-                SizedBox(
-                  height: 190,
-                  child: SvgPicture.asset(
-                    'alera-figma-assets/assets/icons/onboarding/household-icon.svg',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Enter your Household code',
+                  'Connect to your care household',
                   textAlign: TextAlign.center,
                   style: AleraTypography.pageTitle.copyWith(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 28),
-                Form(
-                  key: _formKey,
-                  child: HouseholdCodeInput(
-                    controller: _household,
-                    enabled: !_submitting,
-                    onSubmitted: (_) => _continueHousehold(),
-                    validator: (value) => RegExp(
-                      r'^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$',
-                    ).hasMatch(value?.trim() ?? '')
-                        ? null
-                        : 'Enter a household code in XXXX-XXXX format.',
-                  ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    key: const Key('auth-error'),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'Scan the QR code provided by your caregiver\nto securely access your Alera account.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AleraColors.critical,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    style: AleraTypography.label.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      height: 1.15,
                     ),
                   ),
-                ],
-                const SizedBox(height: 22),
+                ),
+                const SizedBox(height: 56),
+                Center(
+                  child: SizedBox(
+                    width: 216,
+                    child: AleraButton(
+                      label: 'Scan QR Code',
+                      variant: AleraButtonVariant.pill,
+                      height: 40,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => PatientQrScannerPage(
+                            sessionController: widget.sessionController,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    'or',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFFB4AEC2)),
+                  ),
+                ),
+                Center(
+                  child: SizedBox(
+                    width: 216,
+                    child: AleraButton(
+                      label: 'Enter code manually',
+                      variant: AleraButtonVariant.lightPill,
+                      height: 40,
+                      onPressed: _submitting
+                          ? null
+                          : () => _go(_AuthStep.patientManual),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text(
-                  'Don’t have a code? Contact your care administrator.',
+                  'Your patient code can only be used once.',
                   textAlign: TextAlign.center,
                   style: AleraTypography.label.copyWith(
                     fontSize: 10,
@@ -860,84 +698,84 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
-          child: AleraButton(
-            label: _submitting ? 'Validating…' : 'Continue',
-            variant: AleraButtonVariant.pill,
-            onPressed: _submitting ? null : _continueHousehold,
-            height: 40,
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildCaregiverSignIn() {
+  Widget _buildPatientManual() {
     return Column(
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(32, 10, 32, 24),
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _backButton(),
-                  const SizedBox(height: 78),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 190,
+                    child: SvgPicture.asset(
+                      'alera-figma-assets/assets/icons/onboarding/patient-code.svg',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Text(
-                    'Sign in to ${_householdName ?? 'your'} household',
+                    'Enter your patient code',
                     textAlign: TextAlign.center,
                     style: AleraTypography.pageTitle.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _householdSummary(),
-                  const SizedBox(height: 42),
-                  _authTextField(
-                    key: const Key('caregiver-email-field'),
-                    controller: _email,
-                    label: 'Email',
-                    hintText: 'Enter your email',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: _required,
-                  ),
-                  const SizedBox(height: 18),
-                  _authTextField(
-                    key: const Key('caregiver-password-field'),
-                    controller: _password,
-                    label: 'Password',
-                    hintText: 'Enter your password',
-                    obscureText: _obscurePassword,
-                    validator: _required,
+                  const SizedBox(height: 28),
+                  TextFormField(
+                    key: const Key('patient-access-code-field'),
+                    controller: _accessCode,
+                    enabled: !_submitting,
+                    textCapitalization: TextCapitalization.characters,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    inputFormatters: const [PatientAccessCodeFormatter()],
+                    validator: (value) => isValidPatientAccessCode(
+                      normalizePatientAccessCode(value ?? ''),
+                    )
+                        ? null
+                        : 'Enter a valid patient code.',
                     onFieldSubmitted: (_) => _submit(),
-                    suffixIcon: IconButton(
-                      tooltip: _obscurePassword
-                          ? 'Show password'
-                          : 'Hide password',
-                      onPressed: _submitting
-                          ? null
-                          : () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: const Color(0xFFA684E8),
+                    decoration: InputDecoration(
+                      hintText: 'XXXX - XXXX - XXXX',
+                      hintStyle: const TextStyle(color: Color(0xFFB5A6DB)),
+                      filled: true,
+                      fillColor: const Color(0xFFF7F3FF),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE0D6F5)),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Your account is created by your care administrator.',
-                    textAlign: TextAlign.center,
-                    style: AleraTypography.label.copyWith(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: AleraColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AleraColors.critical),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: AleraColors.critical,
+                          width: 1.5,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                   if (_error != null) ...[
@@ -953,6 +791,15 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 22),
+                  Text(
+                    'Don’t have a code? Contact your care administrator.',
+                    textAlign: TextAlign.center,
+                    style: AleraTypography.label.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -961,111 +808,13 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
         Padding(
           padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
           child: AleraButton(
-            label: _submitting ? 'Signing in…' : 'Sign in',
-            onPressed: _submitting ? null : _submit,
+            label: _submitting ? 'Connecting…' : 'Continue',
             variant: AleraButtonVariant.pill,
+            onPressed: _submitting ? null : _submit,
             height: 40,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPatientStep(String title) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: AleraCard(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _backButton(),
-                  Text(title, style: AleraTypography.pageTitle),
-                  const SizedBox(height: 20),
-                  if (_step == _AuthStep.patientOptions) ...[
-                    Text(
-                      'Scan the QR code provided by your caregiver to securely access your Alera account.',
-                      style: AleraTypography.body,
-                    ),
-                    const SizedBox(height: 20),
-                    AleraButton(
-                      label: 'Scan QR Code',
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => PatientQrScannerPage(
-                            sessionController: widget.sessionController,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('or', textAlign: TextAlign.center),
-                    ),
-                    AleraButton(
-                      label: 'Enter Patient Code',
-                      variant: AleraButtonVariant.secondary,
-                      onPressed: () => _go(_AuthStep.patientManual),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Your patient code can only be used once.',
-                      style: AleraTypography.body,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  if (_step == _AuthStep.patientManual) ...[
-                    Text(
-                      'Enter the one-time code provided by your caregiver.',
-                      style: AleraTypography.body,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      key: const Key('patient-access-code-field'),
-                      controller: _accessCode,
-                      enabled: !_submitting,
-                      textCapitalization: TextCapitalization.characters,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      decoration: const InputDecoration(
-                        hintText: 'XXXX-XXXX-XXXX',
-                      ),
-                      inputFormatters: const [PatientAccessCodeFormatter()],
-                      validator: (value) => isValidPatientAccessCode(
-                        normalizePatientAccessCode(value ?? ''),
-                      )
-                          ? null
-                          : 'Enter a valid patient code.',
-                      onFieldSubmitted: (_) => _submit(),
-                    ),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      key: const Key('auth-error'),
-                      style: const TextStyle(color: AleraColors.critical),
-                    ),
-                  ],
-                  if (_step == _AuthStep.patientManual) ...[
-                    const SizedBox(height: 20),
-                    AleraButton(
-                      label: _submitting ? 'Signing in…' : 'Sign in',
-                      onPressed: _submitting ? null : _submit,
-                      height: 48,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -1087,6 +836,8 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
       _AuthStep.patientManual => 'Enter your patient code',
     };
 
+    final isRoleStep = _step == _AuthStep.role;
+
     return PopScope(
       canPop: _step == _AuthStep.welcome,
       onPopInvokedWithResult: (didPop, _) {
@@ -1095,15 +846,264 @@ class _HouseholdAuthFlowState extends State<HouseholdAuthFlow> {
       child: Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: false,
+        appBar: _authAppBar(),
         body: SafeArea(
-          child: switch (_step) {
-            _AuthStep.role => _buildRoleStep(title),
-            _AuthStep.household => _buildHouseholdStep(),
-            _AuthStep.caregiver => _buildCaregiverSignIn(),
-            _AuthStep.patientOptions || _AuthStep.patientManual =>
-              _buildPatientStep(title),
-            _AuthStep.welcome => const SizedBox.shrink(),
-          },
+          top: false,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              fit: StackFit.expand,
+              children: [
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            ),
+            transitionBuilder: (child, animation) {
+              final isIncoming = child.key == ValueKey<_AuthStep>(_step);
+              final incomingOffset = _goingBack
+                  ? const Offset(-1, 0)
+                  : const Offset(1, 0);
+              final outgoingOffset = Offset(-incomingOffset.dx, 0);
+              final curve = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              );
+
+              return ClipRect(
+                child: SlideTransition(
+                  position: isIncoming
+                      ? Tween<Offset>(
+                          begin: incomingOffset,
+                          end: Offset.zero,
+                        ).animate(curve)
+                      : Tween<Offset>(
+                          begin: Offset.zero,
+                          end: outgoingOffset,
+                        ).animate(ReverseAnimation(curve)),
+                  child: child,
+                ),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey<_AuthStep>(_step),
+              child: isRoleStep
+              ? Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 18),
+                            Text(
+                              title,
+                              textAlign: TextAlign.center,
+                              style: AleraTypography.sectionTitle.copyWith(
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            _roleCard(
+                              role: _RoleSelection.caregiver,
+                              title: 'I’m a Caregiver',
+                              description:
+                                  'Monitor and support the\npeople assigned to your care.',
+                              asset:
+                                  'alera-figma-assets/assets/icons/onboarding/caregiver-role.svg',
+                            ),
+                            const SizedBox(height: 20),
+                            _roleCard(
+                              role: _RoleSelection.patient,
+                              title: 'I’m a Patient',
+                              description:
+                                  'View your personal health\nand connection status.',
+                              asset:
+                                  'alera-figma-assets/assets/icons/onboarding/patient-role.svg',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
+                      child: AleraButton(
+                        label: 'Continue',
+                        onPressed: _selectedRole == null ? null : _continueRole,
+                        variant: AleraButtonVariant.pill,
+                        height: 40,
+                      ),
+                    ),
+                  ],
+                )
+                  : _step == _AuthStep.household
+                  ? Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 34),
+                                SizedBox(
+                                  height: 190,
+                                  child: SvgPicture.asset(
+                                    'alera-figma-assets/assets/icons/onboarding/household-icon.svg',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Enter your Household code',
+                                  textAlign: TextAlign.center,
+                                  style: AleraTypography.pageTitle.copyWith(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                Form(
+                                  key: _formKey,
+                                  child: HouseholdCodeInput(
+                                    controller: _household,
+                                    enabled: !_submitting,
+                                    onSubmitted: (_) => _continueHousehold(),
+                                    validator: (value) => RegExp(
+                                      r'^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$',
+                                    ).hasMatch(value?.trim() ?? '')
+                                        ? null
+                                        : 'Enter a household code in XXXX-XXXX format.',
+                                  ),
+                                ),
+                                if (_error != null) ...[
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _error!,
+                                    key: const Key('auth-error'),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: AleraColors.critical,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 22),
+                                Text(
+                                  'Don’t have a code? Contact your care administrator.',
+                                  textAlign: TextAlign.center,
+                                  style: AleraTypography.label.copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
+                          child: AleraButton(
+                            label: _submitting ? 'Validating…' : 'Continue',
+                            variant: AleraButtonVariant.pill,
+                            onPressed:
+                                _submitting ? null : _continueHousehold,
+                            height: 40,
+                          ),
+                        ),
+                      ],
+                    )
+                  : _step == _AuthStep.patientOptions
+                      ? _buildPatientOptions()
+                  : _step == _AuthStep.patientManual
+                      ? _buildPatientManual()
+                  : Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: AleraCard(
+                        padding: const EdgeInsets.all(24),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(title, style: AleraTypography.pageTitle),
+                              const SizedBox(height: 20),
+
+                              if (_step == _AuthStep.caregiver) ...[
+                                Text(
+                                  'Signing in to ${_householdName!}',
+                                  key: const Key('selected-household'),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: _submitting
+                                        ? null
+                                        : () => _go(_AuthStep.household),
+                                    child: const Text('Edit household'),
+                                  ),
+                                ),
+                              ],
+                              if (_step == _AuthStep.caregiver) ...[
+                                TextFormField(
+                                  key: const Key('caregiver-email-field'),
+                                  controller: _email,
+                                  enabled: !_submitting,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autocorrect: false,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Email',
+                                  ),
+                                  validator: _required,
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  key: const Key('caregiver-password-field'),
+                                  controller: _password,
+                                  enabled: !_submitting,
+                                  obscureText: true,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Password',
+                                  ),
+                                  validator: _required,
+                                  onFieldSubmitted: (_) => _submit(),
+                                ),
+                              ],
+                              if (_error != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _error!,
+                                  key: const Key('auth-error'),
+                                  style: const TextStyle(
+                                    color: AleraColors.critical,
+                                  ),
+                                ),
+                              ],
+                              if (_step == _AuthStep.caregiver) ...[
+                                const SizedBox(height: 20),
+                                AleraButton(
+                                  label:
+                                      _submitting ? 'Signing in…' : 'Sign in',
+                                  onPressed: _submitting ? null : _submit,
+                                  height: 48,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ),
+          ),
         ),
       ),
     );

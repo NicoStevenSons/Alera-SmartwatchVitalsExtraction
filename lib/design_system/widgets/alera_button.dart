@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../alera_colors.dart';
 import '../alera_typography.dart';
 
-enum AleraButtonVariant { primary, secondary, white, pill }
+enum AleraButtonVariant { primary, secondary, white, pill, lightPill }
 
 class AleraButton extends StatelessWidget {
   final String label;
@@ -30,8 +30,12 @@ class AleraButton extends StatelessWidget {
     final bool primary =
         variant == AleraButtonVariant.primary ||
         variant == AleraButtonVariant.pill;
+
     final bool white = variant == AleraButtonVariant.white;
-    final bool pill = variant == AleraButtonVariant.pill;
+
+    final bool pill =
+        variant == AleraButtonVariant.pill ||
+        variant == AleraButtonVariant.lightPill;
 
     final ButtonStyle style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
@@ -97,7 +101,11 @@ class AleraButton extends StatelessWidget {
     );
 
     final Widget button = icon == null
-        ? FilledButton(onPressed: onPressed, style: style, child: Text(label))
+        ? FilledButton(
+            onPressed: onPressed,
+            style: style,
+            child: Text(label),
+          )
         : FilledButton.icon(
             onPressed: onPressed,
             style: style,
